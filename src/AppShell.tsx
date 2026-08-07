@@ -27,6 +27,8 @@ import ProvenancePage from './pages/ProvenancePage'
 import AdminPage, { type AdminTab } from './pages/AdminPage'
 import { type MerchantTab } from './pages/MerchantPage'
 
+const publicAssetBase = import.meta.env.BASE_URL
+
 export type AppSection = 'chatbot' | 'dashboard' | 'tasks' | 'skills' | 'provenance' | 'admin' | 'merchant'
 
 type RoleTone = 'aqua' | 'amber' | 'blue' | 'green'
@@ -160,7 +162,7 @@ export default function AppShell() {
     <div className={`app-shell app-shell--${section} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand__figma-logo" src="/dashboard_ui/flowx-ai-logo.png" alt="FlowX AI" />
+          <img className="brand__figma-logo" src={`${publicAssetBase}flowx-ai-logo.png`} alt="FlowX AI" />
         </div>
 
         <nav className="nav" aria-label="主导航">
@@ -193,55 +195,11 @@ export default function AppShell() {
           <span>{sidebarCollapsed ? '展开' : '收起'}</span>
         </button>
 
-        <div className="sidebar-user" ref={sidebarUserRef}>
-          <button
-            type="button"
-            className="sidebar-user__btn"
-            onClick={() => setUserMenuOpen((open) => !open)}
-          >
-            <span className={`topbar-avatar topbar-avatar--${currentRole.tone}`}>{currentRole.avatar}</span>
-            <div className="sidebar-user__info">
-              <strong>{currentRole.name}</strong>
-              <span>{currentRole.label}</span>
-            </div>
-            <ChevronDown aria-hidden="true" />
-          </button>
-
-          {userMenuOpen ? (
-            <div className="sidebar-user-dropdown" role="dialog" aria-label="账号切换">
-              <header className="topbar-dropdown__head">
-                <strong>切换账号角色</strong>
-                <span>当前 · {currentRole.label}</span>
-              </header>
-              <div className="role-list">
-                {roles.map((role) => (
-                  <button
-                    key={role.key}
-                    type="button"
-                    className={role.key === currentRoleKey ? 'active' : ''}
-                    onClick={() => { setCurrentRoleKey(role.key); setUserMenuOpen(false) }}
-                  >
-                    <span className={`topbar-avatar topbar-avatar--${role.tone}`}>{role.avatar}</span>
-                    <div>
-                      <strong>{role.name}</strong>
-                      <small>{role.label} · {role.desc}</small>
-                    </div>
-                    <Check className="role-check" aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
-              <footer className="topbar-dropdown__foot">
-                <button type="button"><Settings aria-hidden="true" />账号设置</button>
-                <button type="button"><LogOut aria-hidden="true" />退出登录</button>
-              </footer>
-            </div>
-          ) : null}
-        </div>
       </aside>
 
       <main className="main">
         <header className="topbar">
-          <img className="topbar-brand" src="/dashboard_ui/flowx-ai-logo.png" alt="FlowX AI" />
+          <img className="topbar-brand" src={`${publicAssetBase}flowx-ai-logo.png`} alt="FlowX AI" />
           <div className="figma-product-nav" aria-label="产品导航">
             <span>小万同学</span>
             <span>电商生图</span>
@@ -305,6 +263,51 @@ export default function AppShell() {
                 </footer>
               </div>
             ) : null}
+
+            <div className="sidebar-user" ref={sidebarUserRef}>
+              <button
+                type="button"
+                className="sidebar-user__btn"
+                onClick={() => setUserMenuOpen((open) => !open)}
+              >
+                <span className={`topbar-avatar topbar-avatar--${currentRole.tone}`}>{currentRole.avatar}</span>
+                <div className="sidebar-user__info">
+                  <strong>{currentRole.name}</strong>
+                  <span>{currentRole.label}</span>
+                </div>
+                <ChevronDown aria-hidden="true" />
+              </button>
+
+              {userMenuOpen ? (
+                <div className="sidebar-user-dropdown" role="dialog" aria-label="账号切换">
+                  <header className="topbar-dropdown__head">
+                    <strong>切换账号角色</strong>
+                    <span>当前 · {currentRole.label}</span>
+                  </header>
+                  <div className="role-list">
+                    {roles.map((role) => (
+                      <button
+                        key={role.key}
+                        type="button"
+                        className={role.key === currentRoleKey ? 'active' : ''}
+                        onClick={() => { setCurrentRoleKey(role.key); setUserMenuOpen(false) }}
+                      >
+                        <span className={`topbar-avatar topbar-avatar--${role.tone}`}>{role.avatar}</span>
+                        <div>
+                          <strong>{role.name}</strong>
+                          <small>{role.label} · {role.desc}</small>
+                        </div>
+                        <Check className="role-check" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                  <footer className="topbar-dropdown__foot">
+                    <button type="button"><Settings aria-hidden="true" />账号设置</button>
+                    <button type="button"><LogOut aria-hidden="true" />退出登录</button>
+                  </footer>
+                </div>
+              ) : null}
+            </div>
           </div>
         </header>
 

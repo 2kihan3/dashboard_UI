@@ -30,12 +30,23 @@ const skillIconMap: Record<string, LucideIcon> = {
 
 function MessageBubble({ message, onPreviewFile }: { message: ChatMessage; onPreviewFile: (file: NonNullable<ChatMessage['producedFile']>) => void }) {
   const isUser = message.role === 'user'
+  const messageTime = isUser ? '14:01' : '14:03'
   return (
     <article className={`chat-msg chat-msg--${message.role}`}>
       <header className="chat-msg__role">
-        {isUser ? <span className="chat-avatar chat-avatar--user">U</span> : <span className="chat-avatar chat-avatar--assistant"><Sparkles aria-hidden="true" /></span>}
-        <span>{isUser ? '运营 · 我' : '经营引擎'}</span>
-        <time>14:0{Number(message.id.slice(-1))}</time>
+        {isUser ? (
+          <>
+            <time>{messageTime}</time>
+            <span className="chat-msg__name">运营 · 我</span>
+            <span className="chat-avatar chat-avatar--user">李</span>
+          </>
+        ) : (
+          <>
+            <span className="chat-avatar chat-avatar--assistant">经</span>
+            <span className="chat-msg__name">经营引擎</span>
+            <time>{messageTime}</time>
+          </>
+        )}
       </header>
       <div className="chat-msg__body">
         {message.content.split('\n').map((line, index) => <p key={index}>{line || '\u00A0'}</p>)}
@@ -106,7 +117,8 @@ export default function ChatbotPage() {
   const [skillMenuOpen, setSkillMenuOpen] = useState(false)
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
 
-  const messages = useMemo(() => currentSessionMessages, [])
+  // 首屏保持当前会话的起始问答，后续追问仍作为原始会话数据保留。
+  const messages = useMemo(() => currentSessionMessages.slice(0, 2), [])
   const previewableMessages = messages.filter((m) => m.producedFile)
   const selectedSkill = quickSkills.find((skill) => skill.id === selectedSkillId)
 
@@ -131,6 +143,7 @@ export default function ChatbotPage() {
                     <span className="chat-history__title">{session.title}</span>
                     {session.pinned ? <Pin aria-hidden="true" /> : null}
                   </div>
+                  {activeSessionId === session.id ? <span className="chat-history__preview">{session.preview}</span> : null}
                   <time><Clock aria-hidden="true" />{session.updatedAt}</time>
                 </button>
               </li>
@@ -174,53 +187,54 @@ export default function ChatbotPage() {
           </div>
         </div>
 
-        <form
-          className="chatbot-composer"
-          onSubmit={(event) => { event.preventDefault(); setInput('') }}
-        >
-          <div className="chatbot-rules" aria-label="任务规则">
-            <label className="chatbot-rule">
-              <span>时间</span>
-              <select value={ruleTime} onChange={(event) => setRuleTime(event.target.value)}>
-                <option value="today">今天</option>
-                <option value="yesterday">昨天</option>
-                <option value="last7">近 7 天</option>
-                <option value="last30">近 30 天</option>
-                <option value="thisMonth">本月</option>
-                <option value="lastMonth">上月</option>
-              </select>
-            </label>
-            <label className="chatbot-rule">
-              <span>业务场景</span>
-              <select value={ruleScene} onChange={(event) => setRuleScene(event.target.value)}>
-                <option value="daily_report">日报生成</option>
-                <option value="fee_audit">费用复核</option>
-                <option value="profit_analysis">利润分析</option>
-                <option value="promo_roi">推广 ROI</option>
-                <option value="inventory">库存预警</option>
-                <option value="refund">退款追溯</option>
-                <option value="free">自由问答</option>
-              </select>
-            </label>
+        <form className="chatbot-composer" onSubmit={(event) => { event.preventDefault(); setInput('') }}>
+          <div className="chatbot-composer__input-row">
+            {selectedSkill ? <span className="chatbot-selected-skill"><Sparkles aria-hidden="true" />已选择：{selectedSkill.name}<button type="button" aria-label="移除已选技能" onClick={() => setSelectedSkillId(null)}><X aria-hidden="true" /></button></span> : null}
+            <input
+              type="text"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="输入 / 触发技能"
+            />
           </div>
-          {selectedSkill ? <div className="chatbot-selected-skill"><Sparkles aria-hidden="true" /><span>已选择：{selectedSkill.name}</span><button type="button" aria-label="移除已选技能" onClick={() => setSelectedSkillId(null)}><X aria-hidden="true" /></button></div> : null}
-          <div className="chatbot-tool-picker">
-            <button type="button" className="chatbot-tool-trigger" aria-label="添加工具" title="添加工具" aria-expanded={skillMenuOpen} onClick={() => setSkillMenuOpen((open) => !open)}><Plus aria-hidden="true" /></button>
-            {skillMenuOpen ? <div className="chatbot-skill-menu" role="menu" aria-label="选择技能">{quickSkills.map((skill) => { const Icon = skillIconMap[skill.icon] ?? FileText; return <button key={skill.id} type="button" role="menuitem" className={selectedSkillId === skill.id ? 'active' : ''} onClick={() => { setSelectedSkillId(skill.id); setSkillMenuOpen(false) }}><span><Icon aria-hidden="true" /></span><div><strong>{skill.name}</strong><small>{skill.description}</small></div></button> })}</div> : null}
+          <div className="chatbot-composer__footer">
+            <div className="chatbot-tool-picker">
+              <button type="button" className="chatbot-tool-trigger" aria-label="添加工具" title="添加工具" aria-expanded={skillMenuOpen} onClick={() => setSkillMenuOpen((open) => !open)}><Plus aria-hidden="true" /></button>
+              {skillMenuOpen ? <div className="chatbot-skill-menu" role="menu" aria-label="选择技能">{quickSkills.map((skill) => { const Icon = skillIconMap[skill.icon] ?? FileText; return <button key={skill.id} type="button" role="menuitem" className={selectedSkillId === skill.id ? 'active' : ''} onClick={() => { setSelectedSkillId(skill.id); setSkillMenuOpen(false) }}><span><Icon aria-hidden="true" /></span><div><strong>{skill.name}</strong><small>{skill.description}</small></div></button> })}</div> : null}
+            </div>
+            <label className="chatbot-composer__attach" aria-label="上传文件">
+              <Paperclip aria-hidden="true" />
+              <input type="file" hidden />
+            </label>
+            <div className="chatbot-rules" aria-label="任务规则">
+              <label className="chatbot-rule">
+                <span>时间</span>
+                <select value={ruleTime} onChange={(event) => setRuleTime(event.target.value)}>
+                  <option value="today">今天</option>
+                  <option value="yesterday">昨天</option>
+                  <option value="last7">近 7 天</option>
+                  <option value="last30">近 30 天</option>
+                  <option value="thisMonth">本月</option>
+                  <option value="lastMonth">上月</option>
+                </select>
+              </label>
+              <label className="chatbot-rule">
+                <span>业务场景</span>
+                <select value={ruleScene} onChange={(event) => setRuleScene(event.target.value)}>
+                  <option value="daily_report">日报生成</option>
+                  <option value="fee_audit">费用复核</option>
+                  <option value="profit_analysis">利润分析</option>
+                  <option value="promo_roi">推广 ROI</option>
+                  <option value="inventory">库存预警</option>
+                  <option value="refund">退款追溯</option>
+                  <option value="free">自由问答</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit" className="primary-action chatbot-send" aria-label="发送" disabled={!input.trim()}>
+              <Send aria-hidden="true" />
+            </button>
           </div>
-          <label className="chatbot-composer__attach" aria-label="上传文件">
-            <Paperclip aria-hidden="true" />
-            <input type="file" hidden />
-          </label>
-          <input
-            type="text"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="向经营引擎提问，或输入 / 触发技能"
-          />
-          <button type="submit" className="primary-action chatbot-send" disabled={!input.trim()}>
-            <Send aria-hidden="true" />发送
-          </button>
         </form>
       </section>
 

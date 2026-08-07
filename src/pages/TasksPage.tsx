@@ -10,7 +10,6 @@ import {
   Pencil,
   RotateCcw,
   ScrollText,
-  Sparkles,
   Unlink,
   Upload,
 } from 'lucide-react'
@@ -781,7 +780,9 @@ export default function TasksPage() {
           </div>
         </article>
         <article className="report-stat-card">
-          <span className="report-stat-card__icon report-stat-card__icon--pea"><Sparkles aria-hidden="true" /></span>
+          <span className="report-stat-card__icon report-stat-card__icon--pea">
+            <img src={`${import.meta.env.BASE_URL}pea-consumption-icon.png`} alt="" aria-hidden="true" />
+          </span>
           <div>
             <strong>{totalPeaCost}</strong>
             <span>豌豆消耗</span>
@@ -971,7 +972,7 @@ export default function TasksPage() {
 
       {templateDialogOpen ? (
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setTemplateDialogOpen(false)}>
-          <section className="ledger-dialog create-task-dialog">
+          <section className="ledger-dialog create-task-dialog template-dialog">
             <header>
               <div>
                 <span className="eyebrow">daily_report_template</span>
@@ -996,7 +997,7 @@ export default function TasksPage() {
 
       {batchSourceDialogOpen ? (
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setBatchSourceDialogOpen(false)}>
-          <section className="ledger-dialog create-task-dialog" role="dialog" aria-modal="true" aria-labelledby="batch-source-title">
+          <section className="ledger-dialog create-task-dialog batch-source-dialog" role="dialog" aria-modal="true" aria-labelledby="batch-source-title">
             <header>
               <div>
                 <span className="eyebrow">batch_source_tables</span>
@@ -1044,7 +1045,7 @@ export default function TasksPage() {
 
       {createMode === 'auto' ? (
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCreateMode(null) }}>
-          <form className="ledger-dialog create-task-dialog" onSubmit={submitRetry}>
+          <form className="ledger-dialog create-task-dialog retry-dialog" onSubmit={submitRetry}>
             <header>
               <div>
                 <span className="eyebrow">auto_task</span>
@@ -1081,7 +1082,7 @@ export default function TasksPage() {
 
       {isUploadDialogOpen ? (
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setIsUploadDialogOpen(false)}>
-          <form className="ledger-dialog" onSubmit={submitManualUpload}>
+          <form className="ledger-dialog manual-upload-dialog" onSubmit={submitManualUpload}>
             <header>
               <div>
                 <span className="eyebrow">manual_import</span>

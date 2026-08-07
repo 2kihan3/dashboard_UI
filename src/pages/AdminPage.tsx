@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import {
   ArrowLeft,
+  ChevronDown,
+  ChevronRight,
   CheckCircle2,
   KeyRound,
   Link2,
@@ -184,8 +186,149 @@ interface OrganizationPermissionRecord {
 }
 
 const teamModuleOptions = ['chatbot', '数据看板', '数据中心', 'skills市场', '数据溯源']
-const teamOperationPermissions = ['日报任务记录：发布', '日报任务记录：修改', '日报任务记录：重试', '日报任务记录：人工上传', '日报任务记录：作废', '日报数据：修改']
-const teamDataPermissions = ['业务日期', '平台名称', '店铺名称', 'GMV', '销售收入', '平台费用', '净利润']
+const dataPermissionPlatforms = ['快手', '爱库存', '唯品会', '好衣库', '抖店']
+const dailyTaskPermissionFields = ['任务 ID', '任务来源', '平台', '店铺', '任务日期', '业务日期', '豌豆消耗', '归属人员', '审核人', '结果预览', '任务结果', '日报状态', '任务日志']
+const dailyDataPermissionFields = ['业务日期', '平台名称', '店铺名称', 'GMV', '销售收入', '实收收入', '退款金额', '活动折扣', '销售成本', '平台费用', '推广费用', '运费', '管理费用', '净利润']
+
+interface PermissionTreeNode {
+  id: string
+  label: string
+  children?: PermissionTreeNode[]
+}
+
+const createPlatformPermissionNodes = (scope: 'task' | 'data'): PermissionTreeNode[] => {
+  const fields = scope === 'task' ? dailyTaskPermissionFields : dailyDataPermissionFields
+  return dataPermissionPlatforms.map((platform) => ({
+    id: `${scope}-${platform}`,
+    label: platform,
+    children: fields.map((field) => ({ id: `${scope}-${platform}-${field}`, label: field })),
+  }))
+}
+
+const operationPermissionTree: PermissionTreeNode[] = [{
+  id: 'operation-data-center',
+  label: '数据中心',
+  children: [
+    {
+      id: 'operation-daily-tasks',
+      label: '日报任务记录',
+      children: ['发布', '修改', '重试', '人工上传', '作废'].map((item) => ({ id: `operation-task-${item}`, label: item })),
+    },
+    {
+      id: 'operation-daily-data',
+      label: '日报数据',
+      children: [{ id: 'operation-daily-data-edit', label: '修改' }],
+    },
+  ],
+}]
+
+const dataPermissionTree: PermissionTreeNode[] = [{
+  id: 'data-center',
+  label: '数据中心',
+  children: [
+    { id: 'data-daily-tasks', label: '日报任务记录', children: createPlatformPermissionNodes('task') },
+    { id: 'data-daily-data', label: '日报数据', children: createPlatformPermissionNodes('data') },
+  ],
+}]
+
+const getPermissionLeafIds = (node: PermissionTreeNode): string[] => node.children?.flatMap(getPermissionLeafIds) ?? [node.id]
+
+const getPermissionTreeLeafIds = (nodes: PermissionTreeNode[]) => nodes.flatMap(getPermissionLeafIds)
+
+function PermissionTree({
+  nodes,
+  selectedIds,
+  onSelectedIdsChange,
+  defaultExpandedIds,
+}: {
+  nodes: PermissionTreeNode[]
+  selectedIds: Set<string>
+  onSelectedIdsChange: (nextIds: Set<string>) => void
+  defaultExpandedIds: string[]
+}) {
+  const [expandedIds, setExpandedIds] = useState(() => new Set(defaultExpandedIds))
+
+  const toggleNode = (node: PermissionTreeNode) => {
+    const leafIds = getPermissionLeafIds(node)
+    const isFullySelected = leafIds.every((id) => selectedIds.has(id))
+    const nextIds = new Set(selectedIds)
+    leafIds.forEach((id) => isFullySelected ? nextIds.delete(id) : nextIds.add(id))
+    onSelectedIdsChange(nextIds)
+  }
+
+  const renderNode = (node: PermissionTreeNode, depth = 0) => {
+    const hasChildren = Boolean(node.children?.length)
+    const leafIds = getPermissionLeafIds(node)
+    const isChecked = leafIds.every((id) => selectedIds.has(id))
+    const isPartial = !isChecked && leafIds.some((id) => selectedIds.has(id))
+    const isExpanded = expandedIds.has(node.id)
+
+    return <div className="permission-tree__node" key={node.id}>
+      <div className="permission-tree__row" style={{ paddingLeft: `${depth * 18}px` }}>
+        {hasChildren ? <button className="permission-tree__toggle" type="button" aria-label={`${isExpanded ? '收起' : '展开'}${node.label}`} aria-expanded={isExpanded} onClick={() => setExpandedIds((ids) => {
+          const nextIds = new Set(ids)
+          if (isExpanded) nextIds.delete(node.id)
+          else nextIds.add(node.id)
+          return nextIds
+        })}>{isExpanded ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}</button> : <span className="permission-tree__toggle-spacer" aria-hidden="true" />}
+        <label className="permission-tree__label">
+          <input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => toggleNode(node)} />
+          <span>{node.label}</span>
+        </label>
+      </div>
+      {hasChildren && isExpanded ? <div className="permission-tree__children">{node.children!.map((child) => renderNode(child, depth + 1))}</div> : null}
+    </div>
+  }
+
+  return <div className="permission-tree" role="tree">{nodes.map((node) => renderNode(node))}</div>
+}
+
+function BusinessPermissionDialog({
+  role,
+  businessRoles,
+  onClose,
+  onSave,
+}: {
+  role: string
+  businessRoles: string[]
+  onClose: () => void
+  onSave: (name: string) => void
+}) {
+  const [roleName, setRoleName] = useState(role)
+  const [operationSelections, setOperationSelections] = useState(() => new Set(getPermissionTreeLeafIds(operationPermissionTree)))
+  const [dataSelections, setDataSelections] = useState(() => new Set(dataPermissionPlatforms.flatMap((platform) => ['业务日期', '平台名称', '店铺名称'].map((field) => `data-${platform}-${field}`))))
+
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <form className="ledger-dialog create-task-dialog permission-dialog" onSubmit={(event) => { event.preventDefault(); onSave(roleName) }}>
+      <header>
+        <div>
+          <span className="eyebrow">business_role</span>
+          <h3>{businessRoles.includes(role) ? '编辑业务角色' : '新增业务角色'}</h3>
+        </div>
+        <button type="button" className="dialog-close" onClick={onClose}>×</button>
+      </header>
+      <label className="dialog-field">
+        <span>角色名称</span>
+        <input value={roleName} onChange={(event) => setRoleName(event.target.value)} required />
+      </label>
+      <div className="permission-dialog__grids">
+        <section className="dialog-field">
+          <span>操作权限</span>
+          <PermissionTree nodes={operationPermissionTree} selectedIds={operationSelections} onSelectedIdsChange={setOperationSelections} defaultExpandedIds={['operation-data-center', 'operation-daily-tasks', 'operation-daily-data']} />
+        </section>
+        <section className="dialog-field">
+          <span>数据权限</span>
+          <PermissionTree nodes={dataPermissionTree} selectedIds={dataSelections} onSelectedIdsChange={setDataSelections} defaultExpandedIds={['data-center', 'data-daily-tasks', 'data-daily-data']} />
+          <small className="dialog-field-hint">展开平台后，可单独配置该平台下的字段可见范围。</small>
+        </section>
+      </div>
+      <footer>
+        <button className="secondary-action" type="button" onClick={onClose}>取消</button>
+        <button className="primary-action" type="submit">保存</button>
+      </footer>
+    </form>
+  </div>
+}
 
 function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBack: () => void; supportedPlatforms: string[] }) {
   const [tab, setTab] = useState<TeamDetailTab>('members')
@@ -267,7 +410,20 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
     {editingOrganizationPermission ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingOrganizationPermission(null)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); setOrganizationPermissions((rows) => rows.map((row) => row.role === editingOrganizationPermission.role ? editingOrganizationPermission : row)); setEditingOrganizationPermission(null) }}><header><div><span className="eyebrow">organization_permissions</span><h3>配置{editingOrganizationPermission.role}可见页面</h3></div><button type="button" className="dialog-close" onClick={() => setEditingOrganizationPermission(null)}>×</button></header><div className="dialog-field"><span>页面权限</span><div className="permission-tree"><label className="permission-tree__root"><input type="checkbox" checked={editingOrganizationPermission.pages.length === teamModuleOptions.length} onChange={(event) => setEditingOrganizationPermission({ ...editingOrganizationPermission, pages: event.target.checked ? [...teamModuleOptions] : [] })} />管理后台</label><div className="permission-tree__children">{teamModuleOptions.map((module) => <label key={module} className="permission-tree__item"><input type="checkbox" checked={editingOrganizationPermission.pages.includes(module)} onChange={() => setEditingOrganizationPermission({ ...editingOrganizationPermission, pages: editingOrganizationPermission.pages.includes(module) ? editingOrganizationPermission.pages.filter((item) => item !== module) : [...editingOrganizationPermission.pages, module] })} />{module}</label>)}</div></div></div><footer><button className="secondary-action" type="button" onClick={() => setEditingOrganizationPermission(null)}>取消</button><button className="primary-action" type="submit">保存权限</button></footer></form></div> : null}
     {editingGroup ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingGroup(null)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); saveGroup() }}><header><div><span className="eyebrow">team_group</span><h3>{editingGroup.id ? '编辑小组' : '创建小组'}</h3></div><button type="button" className="dialog-close" onClick={() => setEditingGroup(null)}>×</button></header><label className="dialog-field"><span>小组名称</span><input value={editingGroup.name} onChange={(event) => setEditingGroup({ ...editingGroup, name: event.target.value })} required /></label><label className="dialog-field"><span>指定组长</span><select value={editingGroup.leader} onChange={(event) => setEditingGroup({ ...editingGroup, leader: event.target.value })}><option value="">暂不指定</option>{members.map((member) => <option key={member.id}>{member.name}</option>)}</select></label><div className="dialog-field"><span>关联店铺</span><div className="binding-checkbox-list">{availableStores.map((store) => <label className="binding-checkbox-item" key={store}><input type="checkbox" checked={editingGroup.stores.includes(store)} onChange={() => setEditingGroup({ ...editingGroup, stores: editingGroup.stores.includes(store) ? editingGroup.stores.filter((item) => item !== store) : [...editingGroup.stores, store] })} />{store}</label>)}</div></div><footer><button className="secondary-action" type="button" onClick={() => setEditingGroup(null)}>取消</button><button className="primary-action" type="submit">保存</button></footer></form></div> : null}
     {adjusting ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setAdjusting(null)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); if (adjusting.type === 'member') setMembers((rows) => rows.map((row) => row.id === adjusting.id ? { ...row, peaBalance: Math.max(0, row.peaBalance + (adjusting.direction === 'add' ? adjusting.amount : -adjusting.amount)) } : row)); else setGroups((rows) => rows.map((row) => row.id === adjusting.id ? { ...row, balance: Math.max(0, row.balance + (adjusting.direction === 'add' ? adjusting.amount : -adjusting.amount)) } : row)); setAdjusting(null) }}><header><div><span className="eyebrow">pea_allocation</span><h3>豌豆分配 / 回收</h3></div><button type="button" className="dialog-close" onClick={() => setAdjusting(null)}>×</button></header><label className="dialog-field"><span>操作类型</span><select value={adjusting.direction} onChange={(event) => setAdjusting({ ...adjusting, direction: event.target.value as 'add' | 'subtract' })}><option value="add">分配</option><option value="subtract">回收</option></select></label><label className="dialog-field"><span>豌豆数量</span><input type="number" min="1" value={adjusting.amount || ''} onChange={(event) => setAdjusting({ ...adjusting, amount: Number(event.target.value) })} required /></label><footer><button className="secondary-action" type="button" onClick={() => setAdjusting(null)}>取消</button><button className="primary-action" type="submit">确认</button></footer></form></div> : null}
-    {editingBusinessRole !== null ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingBusinessRole(null)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); const name = editingBusinessRole.trim(); if (name && !businessRoles.includes(name)) setBusinessRoles((roles) => [...roles, name]); setEditingBusinessRole(null) }}><header><div><span className="eyebrow">business_role</span><h3>{businessRoles.includes(editingBusinessRole) ? '编辑业务角色' : '新增业务角色'}</h3></div><button type="button" className="dialog-close" onClick={() => setEditingBusinessRole(null)}>×</button></header><label className="dialog-field"><span>角色名称</span><input value={editingBusinessRole} onChange={(event) => setEditingBusinessRole(event.target.value)} required /></label><div className="dialog-field"><span>操作权限</span><div className="permission-tree"><label className="permission-tree__root"><input type="checkbox" defaultChecked />数据中心</label><div className="permission-tree__children"><label className="permission-tree__item"><input type="checkbox" defaultChecked />日报任务记录</label><div className="permission-tree__children">{teamOperationPermissions.slice(0, 5).map((item) => <label key={item} className="permission-tree__item"><input type="checkbox" defaultChecked />{item.replace('日报任务记录：', '')}</label>)}</div><label className="permission-tree__item"><input type="checkbox" defaultChecked />日报数据</label><div className="permission-tree__children"><label className="permission-tree__item"><input type="checkbox" defaultChecked />修改</label></div></div></div></div><div className="dialog-field"><span>数据权限</span><div className="permission-tree"><label className="permission-tree__root"><input type="checkbox" defaultChecked />数据中心</label><div className="permission-tree__children"><label className="permission-tree__item"><input type="checkbox" defaultChecked />日报记录</label><div className="permission-tree__children">{teamDataPermissions.map((item, index) => <label key={item} className="permission-tree__item"><input type="checkbox" defaultChecked={index < 3} />{item}</label>)}</div></div></div><small className="dialog-field-hint">业务日期、平台名称、店铺名称全员可见。</small></div><footer><button className="secondary-action" type="button" onClick={() => setEditingBusinessRole(null)}>取消</button><button className="primary-action" type="submit">保存</button></footer></form></div> : null}
+    {editingBusinessRole !== null ? <BusinessPermissionDialog
+      role={editingBusinessRole}
+      businessRoles={businessRoles}
+      onClose={() => setEditingBusinessRole(null)}
+      onSave={(name) => {
+        const normalizedName = name.trim()
+        if (normalizedName) {
+          setBusinessRoles((roles) => roles.includes(editingBusinessRole)
+            ? roles.map((item) => item === editingBusinessRole ? normalizedName : item)
+            : roles.includes(normalizedName) ? roles : [...roles, normalizedName])
+        }
+        setEditingBusinessRole(null)
+      }}
+    /> : null}
   </>
 }
 

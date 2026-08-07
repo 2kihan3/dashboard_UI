@@ -31,7 +31,7 @@ export interface QuickSkill {
 export const chatSessions: ChatSession[] = [
   {
     id: 's-1',
-    title: '7 月 13 日快手日报复核',
+    title: '7月13日快手日报复核',
     preview: '快手 7/13 GMV 同比下滑 6.4%，主因推广费集中投放…',
     updatedAt: '14:08',
     pinned: true,
@@ -101,7 +101,7 @@ export const currentSessionMessages: ChatMessage[] = [
     id: 'm-2',
     role: 'assistant',
     content:
-      '已拉取快手官方旗舰店 7/13 日报，并与近 7 日均值和去年同期做对比。\n\n核心结论：\n• GMV 12,722.86 元，同比 -6.4%，环比 -3.1%，处于近 7 日低位；\n• 平台费用 1,658.79 元，同比 +9.8%，主因为品牌推广费集中投放；\n• 管理费用 116.76 元，与近 7 日均值持平；\n• 净利润率 71.4%，较前日 -2.1pp，需关注推广费 ROI。\n\n已生成《7/13 快手日报复核报告》，可在右侧预览或下载。',
+      '已拉取快手官方旗舰店 7/13 日报，并与近 7 日均值和去年同期做对比。\n\n核心结论：\n• GMV 12,722.86 元，同比 -6.4%，环比 -3.1%，处于近 7 日低位；\n• 平台费用 1,658.79 元，同比 +9.8%，主因为品牌推广费集中投放；\n• 管理费用 116.76 元，与近 7 日均值持平；',
     producedFile: {
       name: '7/13 快手日报复核报告',
       type: 'report',
