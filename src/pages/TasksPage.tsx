@@ -6,11 +6,9 @@ import {
   Download,
   Eye,
   FileSpreadsheet,
-  FolderOpen,
   Pencil,
   RotateCcw,
   ScrollText,
-  Unlink,
   Upload,
 } from 'lucide-react'
 import { type PlatformName, type ReportRow, reportDataWithHaoyiku as reportData } from '../data/dailyReport'
@@ -21,6 +19,7 @@ type DailyReportStatus = '待发布' | '已发布' | '未发布'
 type TaskSource = '定时任务' | '指令' | '人工上传文件' | '人工上传'
 type TaskResult = '完成' | '失败'
 type DataTab = 'tasks' | 'dailyData'
+export type DataCenterView = 'task-records' | 'daily-data'
 type LedgerPlatform = Exclude<PlatformName, '总计'> | '抖店' | '得物'
 type DataPlatformFilter = '全部' | LedgerPlatform
 type DataStoreFilter = '全部' | string
@@ -417,10 +416,10 @@ function TaskPreviewDialog({ task, onClose, onEdit }: { task: DailyTaskRecord; o
   )
 }
 
-export default function TasksPage() {
+export default function TasksPage({ view = 'task-records' }: { view?: DataCenterView }) {
   const [tasks, setTasks] = useState<DailyTaskRecord[]>(taskRows)
   const [dailyData, setDailyData] = useState<DailyDataRecord[]>([])
-  const [dataTab, setDataTab] = useState<DataTab>('tasks')
+  const dataTab: DataTab = view === 'daily-data' ? 'dailyData' : 'tasks'
   const [taskPlatform, setTaskPlatform] = useState<DataPlatformFilter>('全部')
   const [taskStore, setTaskStore] = useState<DataStoreFilter>('全部')
   const [taskStartDate, setTaskStartDate] = useState('')
@@ -483,8 +482,9 @@ export default function TasksPage() {
     .slice(0, 10)
 
   // 报告统计
-  const totalDailyReports = tasks.filter((task) => task.source === '定时任务' || task.source === '人工上传文件' || task.source === '人工上传').length
-  const totalOtherTasks = tasks.filter((task) => task.source === '指令').length
+  const totalTaskCount = tasks.length
+  const failureCount = tasks.filter((task) => task.taskResult === '失败').length
+  const manualUploadCount = tasks.filter((task) => task.source === '人工上传文件' || task.source === '人工上传').length
   const totalPeaCost = tasks.reduce((sum, t) => sum + t.peaCost, 0)
   const visibleTasks = tasks
     .filter((task) => (taskPlatform === '全部' || task.platform === taskPlatform) && (taskStore === '全部' || task.store === taskStore))
@@ -564,12 +564,6 @@ export default function TasksPage() {
     )
     setIsReviewDialogOpen(false)
     setLedgerNotice('复核完成，原始结果已保留；发布时将写入修正后数据')
-  }
-
-  function unbindTask(taskId: string) {
-    setTasks((rows) => rows.map((row) => row.taskId === taskId ? { ...row, isUnbound: true } : row))
-    setDailyData((rows) => rows.filter((row) => row.taskId !== taskId))
-    setLedgerNotice('任务已与对应业务日期和店铺的日报数据解绑')
   }
 
   function openRetry(task: DailyTaskRecord) {
@@ -760,23 +754,30 @@ export default function TasksPage() {
       <section className="data-scope-note">
         <div className="data-center-heading">
           <h2>数据中心</h2>
-          <p>管理日报任务记录与日报数据，支持发布、复核、重试、人工上传、作废与日志回查。</p>
+          <p>{dataTab === 'tasks' ? '查看日报任务的执行、复核、发布和日志。' : '查看已发布日报数据，并按平台、店铺和业务日期筛选。'}</p>
         </div>
       </section>
 
-      <section className="report-stats" data-prd-anchor="tasks-summary">
+      {dataTab === 'tasks' ? <section className="report-stats" data-prd-anchor="tasks-summary">
         <article className="report-stat-card">
           <span className="report-stat-card__icon"><CalendarDays aria-hidden="true" /></span>
           <div>
-            <strong>{totalDailyReports}</strong>
-            <span>日报数量</span>
+            <strong>{totalTaskCount}</strong>
+            <span>日报任务总数</span>
           </div>
         </article>
         <article className="report-stat-card">
-          <span className="report-stat-card__icon report-stat-card__icon--success"><FolderOpen aria-hidden="true" /></span>
+          <span className="report-stat-card__icon report-stat-card__icon--danger"><AlertTriangle aria-hidden="true" /></span>
           <div>
-            <strong>{totalOtherTasks}</strong>
-            <span>其他任务数量</span>
+            <strong>{failureCount}</strong>
+            <span>失败次数</span>
+          </div>
+        </article>
+        <article className="report-stat-card">
+          <span className="report-stat-card__icon report-stat-card__icon--success"><Upload aria-hidden="true" /></span>
+          <div>
+            <strong>{manualUploadCount}</strong>
+            <span>人工上传次数</span>
           </div>
         </article>
         <article className="report-stat-card">
@@ -788,26 +789,9 @@ export default function TasksPage() {
             <span>豌豆消耗</span>
           </div>
         </article>
-      </section>
+      </section> : null}
 
       <section className="data-toolbar" data-prd-anchor="tasks-filters">
-        <div className="data-subtabs ledger-tabs" aria-label="数据表切换">
-          <button
-            className={dataTab === 'tasks' ? 'selected' : ''}
-            type="button"
-            onClick={() => setDataTab('tasks')}
-          >
-            日报任务记录
-          </button>
-          <button
-            className={dataTab === 'dailyData' ? 'selected' : ''}
-            type="button"
-            onClick={() => setDataTab('dailyData')}
-          >
-            日报数据
-          </button>
-        </div>
-
         <div className="ledger-common-filters" aria-label="常用筛选">
           <div className="data-subtabs platform-filter">
             {dataTab === 'tasks' ? (
@@ -945,9 +929,6 @@ export default function TasksPage() {
                           </button>
                           <button className="table-action" type="button" disabled={!canDownloadSourceTable(row)} title={canDownloadSourceTable(row) ? `下载 ${sourceTableFileName(row)}` : '仅已完成的自动化任务支持下载源表'} onClick={() => downloadSourceTables([row])}>
                             <Download aria-hidden="true" />下载源表
-                          </button>
-                          <button className="table-action danger-action" type="button" disabled={row.isUnbound} onClick={() => unbindTask(row.taskId)}>
-                            <Unlink aria-hidden="true" />{row.isUnbound ? '已解绑' : '作废'}
                           </button>
                         </div>
                       </td>

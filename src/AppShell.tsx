@@ -15,21 +15,22 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
-  Shield,
+  ShieldCheck,
   Store,
 } from 'lucide-react'
 import './App.css'
 import ChatbotPage from './pages/ChatbotPage'
-import DashboardPage from './pages/DashboardPage'
-import TasksPage from './pages/TasksPage'
+import DashboardPage, { type DashboardView } from './pages/DashboardPage'
+import TasksPage, { type DataCenterView } from './pages/TasksPage'
 import SkillsPage from './pages/SkillsPage'
 import ProvenancePage from './pages/ProvenancePage'
-import AdminPage, { type AdminTab } from './pages/AdminPage'
+import AdminPage from './pages/AdminPage'
 import { type MerchantTab } from './pages/MerchantPage'
+import PlatformAdminPage from './pages/PlatformAdminPage'
 
 const publicAssetBase = import.meta.env.BASE_URL
 
-export type AppSection = 'chatbot' | 'dashboard' | 'tasks' | 'skills' | 'provenance' | 'admin' | 'merchant'
+export type AppSection = 'chatbot' | 'dashboard' | 'tasks' | 'skills' | 'provenance' | 'platform-admin' | 'merchant'
 
 type RoleTone = 'aqua' | 'amber' | 'blue' | 'green'
 
@@ -91,14 +92,8 @@ const navItems: NavItem[] = [
   { key: 'tasks', label: '数据中心', eyebrow: 'data_center', description: '日报任务记录与日报数据', icon: <ListTodo aria-hidden="true" />, group: 'business' },
   { key: 'skills', label: 'skill 市场', eyebrow: 'skill_market', description: '电商经营场景的可复用技能', icon: <Boxes aria-hidden="true" />, group: 'business' },
   { key: 'provenance', label: '数据溯源', eyebrow: 'data_provenance', description: '全链路追溯（筹备中）', icon: <Network aria-hidden="true" />, group: 'business' },
-  { key: 'admin', label: '系统管理员', eyebrow: 'system_admin', description: 'LLM 配置与系统消耗管理', icon: <Shield aria-hidden="true" />, group: 'admin' },
+  { key: 'platform-admin', label: '平台管理', eyebrow: 'platform_admin', description: '超管与系统管理员统一入口', icon: <ShieldCheck aria-hidden="true" />, group: 'admin' },
   { key: 'merchant', label: '商户管理员', eyebrow: 'merchant_admin', description: '团队与商户配置管理', icon: <Store aria-hidden="true" />, group: 'admin' },
-]
-
-const adminNav: Array<{ key: AdminTab; label: string }> = [
-  { key: 'team', label: '团队管理' },
-  { key: 'platforms', label: '平台维护' },
-  { key: 'tasks', label: '任务管理' },
 ]
 
 const merchantNav: Array<{ key: MerchantTab; label: string }> = [
@@ -106,30 +101,84 @@ const merchantNav: Array<{ key: MerchantTab; label: string }> = [
   { key: 'tasks', label: '任务管理' },
 ]
 
-const validHashes: AppSection[] = ['chatbot', 'dashboard', 'tasks', 'skills', 'provenance', 'admin', 'merchant']
+const dataCenterNav: Array<{ key: DataCenterView; label: string }> = [
+  { key: 'task-records', label: '日报任务记录' },
+  { key: 'daily-data', label: '日报数据' },
+]
+
+const dashboardNav: Array<{ key: DashboardView; label: string }> = [
+  { key: 'global', label: '全局看板' },
+  { key: 'team', label: '团队看板' },
+  { key: 'personal', label: '个人看板' },
+]
+
+const validHashes: AppSection[] = ['chatbot', 'dashboard', 'tasks', 'skills', 'provenance', 'platform-admin', 'merchant']
 
 function parseHash(): AppSection {
   const raw = window.location.hash.replace(/^#/, '')
+  if (raw === 'admin' || raw === 'platform-admin' || raw.startsWith('platform-admin/')) return 'platform-admin'
+  if (raw === 'dashboard' || raw.startsWith('dashboard/')) return 'dashboard'
+  if (raw === 'tasks' || raw.startsWith('tasks/')) return 'tasks'
   return validHashes.includes(raw as AppSection) ? (raw as AppSection) : 'chatbot'
+}
+
+function parseDataCenterView(): DataCenterView {
+  return window.location.hash === '#tasks/daily-data' ? 'daily-data' : 'task-records'
+}
+
+function parseDashboardView(): DashboardView {
+  if (window.location.hash === '#dashboard/team') return 'team'
+  if (window.location.hash === '#dashboard/personal') return 'personal'
+  return 'global'
 }
 
 export default function AppShell() {
   const [section, setSection] = useState<AppSection>(parseHash)
-  const [adminTab, setAdminTab] = useState<AdminTab>('tasks')
+  const [dataCenterView, setDataCenterView] = useState<DataCenterView>(parseDataCenterView)
+  const [dashboardView, setDashboardView] = useState<DashboardView>(parseDashboardView)
   const [merchantTab, setMerchantTab] = useState<MerchantTab>('tasks')
 
   useEffect(() => {
-    if (!window.location.hash || !validHashes.includes(window.location.hash.replace(/^#/, '') as AppSection)) {
+    const raw = window.location.hash.replace(/^#/, '')
+    if (!window.location.hash || (!validHashes.includes(raw as AppSection) && raw !== 'admin' && !raw.startsWith('platform-admin/') && !raw.startsWith('dashboard/') && !raw.startsWith('tasks/'))) {
       window.location.hash = '#chatbot'
     }
-    const handleHashChange = () => setSection(parseHash())
+    const handleHashChange = () => {
+      setSection(parseHash())
+      setDataCenterView(parseDataCenterView())
+      setDashboardView(parseDashboardView())
+    }
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   const navigate = (target: AppSection) => {
+    if (target === 'dashboard') {
+      window.location.hash = '#dashboard'
+      setSection('dashboard')
+      setDashboardView('global')
+      return
+    }
+    if (target === 'tasks') {
+      window.location.hash = '#tasks/task-records'
+      setSection('tasks')
+      setDataCenterView('task-records')
+      return
+    }
     window.location.hash = `#${target}`
     setSection(target)
+  }
+
+  const navigateDataCenter = (view: DataCenterView) => {
+    window.location.hash = `#tasks/${view}`
+    setSection('tasks')
+    setDataCenterView(view)
+  }
+
+  const navigateDashboard = (view: DashboardView) => {
+    window.location.hash = `#dashboard/${view}`
+    setSection('dashboard')
+    setDashboardView(view)
   }
 
   const [currentRoleKey, setCurrentRoleKey] = useState(roles[0].key)
@@ -160,13 +209,31 @@ export default function AppShell() {
 
   return (
     <div className={`app-shell app-shell--${section} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className="sidebar">
+      {section !== 'platform-admin' ? <aside className="sidebar">
         <div className="brand">
           <img className="brand__figma-logo" src={`${publicAssetBase}flowx-ai-logo.png`} alt="FlowX AI" />
         </div>
 
         <nav className="nav" aria-label="主导航">
-          {navItems.filter((item) => item.group === 'business').map((item) => (
+          {navItems.filter((item) => item.group === 'business').map((item) => item.key === 'dashboard' ? (
+            <div className="nav-section" key={item.key}>
+              <button type="button" className={section === 'dashboard' ? 'active nav-parent' : 'nav-parent'} onClick={() => navigate('dashboard')}>
+                {item.icon}<span>{item.label}</span><i className="nav-active-dot" aria-hidden="true" />
+              </button>
+              {section === 'dashboard' ? <div className="nav-submenu" aria-label="经营看板二级菜单">
+                {dashboardNav.map((child) => <button key={child.key} type="button" className={dashboardView === child.key ? 'active' : ''} aria-current={dashboardView === child.key ? 'page' : undefined} onClick={() => navigateDashboard(child.key)}>{child.label}</button>)}
+              </div> : null}
+            </div>
+          ) : item.key === 'tasks' ? (
+            <div className="nav-section" key={item.key}>
+              <button type="button" className={section === 'tasks' ? 'active nav-parent' : 'nav-parent'} onClick={() => navigate('tasks')}>
+                {item.icon}<span>{item.label}</span><i className="nav-active-dot" aria-hidden="true" />
+              </button>
+              {section === 'tasks' ? <div className="nav-submenu" aria-label="数据中心二级菜单">
+                {dataCenterNav.map((child) => <button key={child.key} type="button" className={dataCenterView === child.key ? 'active' : ''} aria-current={dataCenterView === child.key ? 'page' : undefined} onClick={() => navigateDataCenter(child.key)}>{child.label}</button>)}
+              </div> : null}
+            </div>
+          ) : (
             <button
               key={item.key}
               type="button"
@@ -181,12 +248,8 @@ export default function AppShell() {
           <div className="nav-divider" />
           <span className="nav-group-label">管理后台</span>
           <div className="nav-section">
-            <button type="button" className={section === 'admin' ? 'active nav-parent' : 'nav-parent'} onClick={() => navigate('admin')}><Shield aria-hidden="true" /><span>系统管理员</span><i className="nav-active-dot" aria-hidden="true" /></button>
-            <div className="nav-submenu">{adminNav.map((item) => <button key={item.key} type="button" className={section === 'admin' && adminTab === item.key ? 'active' : ''} onClick={() => { setAdminTab(item.key); navigate('admin') }}>{item.label}</button>)}</div>
-          </div>
-          <div className="nav-section">
             <button type="button" className={section === 'merchant' ? 'active nav-parent' : 'nav-parent'} onClick={() => navigate('merchant')}><Store aria-hidden="true" /><span>商户管理员</span><i className="nav-active-dot" aria-hidden="true" /></button>
-            <div className="nav-submenu">{merchantNav.map((item) => <button key={item.key} type="button" className={section === 'merchant' && merchantTab === item.key ? 'active' : ''} onClick={() => { setMerchantTab(item.key); navigate('merchant') }}>{item.label}</button>)}</div>
+            {section === 'merchant' ? <div className="nav-submenu">{merchantNav.map((item) => <button key={item.key} type="button" className={merchantTab === item.key ? 'active' : ''} onClick={() => { setMerchantTab(item.key); navigate('merchant') }}>{item.label}</button>)}</div> : null}
           </div>
         </nav>
 
@@ -195,15 +258,16 @@ export default function AppShell() {
           <span>{sidebarCollapsed ? '展开' : '收起'}</span>
         </button>
 
-      </aside>
+      </aside> : null}
 
       <main className="main">
         <header className="topbar">
           <img className="topbar-brand" src={`${publicAssetBase}flowx-ai-logo.png`} alt="FlowX AI" />
           <div className="figma-product-nav" aria-label="产品导航">
-            <span>小万同学</span>
-            <span>电商生图</span>
-            <b>商智引擎</b>
+            <button type="button" onClick={() => navigate('chatbot')}>小万同学</button>
+            <button type="button" onClick={() => navigate('tasks')}>电商生图</button>
+            <button type="button" className={section === 'platform-admin' ? '' : 'active'} onClick={() => navigate('dashboard')}>商智引擎</button>
+            <button type="button" className={section === 'platform-admin' ? 'active' : ''} aria-current={section === 'platform-admin' ? 'page' : undefined} onClick={() => { window.location.hash = '#platform-admin/overview/platform-business' }}>Admin</button>
           </div>
           <div className="topbar-search">
             <Search aria-hidden="true" />
@@ -311,21 +375,21 @@ export default function AppShell() {
           </div>
         </header>
 
-        <nav className="workspace-tabs" aria-label="已打开页面">
+        {section !== 'platform-admin' ? <nav className="workspace-tabs" aria-label="已打开页面">
           {navItems.filter((item) => item.group === 'business' && item.key !== 'provenance').map((item) => (
             <button key={item.key} type="button" className={section === item.key ? 'active' : ''} onClick={() => navigate(item.key)}>
               {item.label}<span aria-hidden="true">×</span>
             </button>
           ))}
-        </nav>
+        </nav> : null}
 
         <div className="main__content">
           {section === 'chatbot' ? <ChatbotPage /> : null}
-          {section === 'dashboard' ? <DashboardPage /> : null}
-          {section === 'tasks' ? <TasksPage /> : null}
+          {section === 'dashboard' ? <DashboardPage view={dashboardView} /> : null}
+          {section === 'tasks' ? <TasksPage view={dataCenterView} /> : null}
           {section === 'skills' ? <SkillsPage /> : null}
           {section === 'provenance' ? <ProvenancePage /> : null}
-          {section === 'admin' ? <AdminPage activeTab={adminTab} /> : null}
+          {section === 'platform-admin' ? <PlatformAdminPage /> : null}
           {section === 'merchant' ? merchantTab === 'tasks' ? <AdminPage key="merchant-tasks" activeTab="tasks" context="merchant" /> : <AdminPage key="merchant-team" activeTab="team" context="merchant" initialTeamId="team-1" /> : null}
         </div>
       </main>

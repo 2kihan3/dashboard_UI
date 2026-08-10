@@ -4,10 +4,13 @@ import Landing from './Landing'
 import AppShell from './AppShell'
 
 // 兼容 Landing 上现有的「数据看板」链接 (#workbench)，进入 AppShell 后默认显示 chatbot
-const appEntryHashes = new Set(['#chatbot', '#dashboard', '#tasks', '#skills', '#provenance', '#admin', '#merchant', '#workbench'])
+const appEntryHashes = new Set(['#chatbot', '#dashboard', '#tasks', '#skills', '#provenance', '#admin', '#merchant', '#platform-admin', '#workbench'])
 
 function isAppHash() {
   return appEntryHashes.has(window.location.hash)
+    || window.location.hash.startsWith('#platform-admin/')
+    || window.location.hash.startsWith('#dashboard/')
+    || window.location.hash.startsWith('#tasks/')
 }
 
 function App() {

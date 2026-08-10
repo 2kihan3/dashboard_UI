@@ -17,7 +17,7 @@ import {
   storeShares,
 } from '../lib/metrics'
 
-type DashboardView = 'global' | 'team' | 'personal'
+export type DashboardView = 'global' | 'team' | 'personal'
 type PersonalComponentType = 'chart' | 'metric'
 
 const tooltipStyle = { background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }
@@ -343,14 +343,12 @@ export function PersonalDashboard({ period }: { period: Period }) {
   )
 }
 
-export default function DashboardPage() {
-  const [view, setView] = useState<DashboardView>('global')
+export default function DashboardPage({ view = 'global' }: { view?: DashboardView }) {
   const [period, setPeriod] = useState<Period>('day')
   const [platform, setPlatform] = useState<PlatformName>('总计')
   const [globalStore, setGlobalStore] = useState('全部店铺')
   return (
     <section className="page-stack dashboard-page">
-      <nav className="dashboard-view-tabs" aria-label="看板范围" data-prd-anchor="dashboard-view-tabs"><button className={view === 'global' ? 'selected' : ''} type="button" onClick={() => setView('global')}>全局看板</button><button className={view === 'team' ? 'selected' : ''} type="button" onClick={() => setView('team')}>团队看板</button><button className={view === 'personal' ? 'selected' : ''} type="button" onClick={() => setView('personal')}>个人看板</button></nav>
       {view === 'global' ? <GlobalDashboard period={period} platform={platform} store={globalStore} onPeriodChange={setPeriod} onPlatformChange={(nextPlatform) => { setPlatform(nextPlatform); setGlobalStore('全部店铺') }} onStoreChange={setGlobalStore} /> : null}
       {view === 'team' ? <DashboardComingSoon title="团队看板正在开发中" description="当前版本暂不开放团队范围的经营数据展示。" /> : null}
       {view === 'personal' ? <DashboardComingSoon title="个人看板正在开发中" description="当前版本暂不开放个人看板的配置与展示。" /> : null}

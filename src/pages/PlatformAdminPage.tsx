@@ -1,0 +1,703 @@
+import { Fragment, type FormEvent, useEffect, useState } from 'react'
+import AdminPage from './AdminPage'
+import {
+  ChevronRight,
+  CircleDollarSign,
+  LayoutDashboard,
+  Pencil,
+  Plus,
+  Power,
+  Settings2,
+  ShieldCheck,
+  Trash2,
+  UsersRound,
+  WandSparkles,
+} from 'lucide-react'
+
+type AreaId = 'overview' | 'permissions' | 'teams' | 'billing' | 'ai' | 'operations'
+
+interface LeafPage {
+  id: string
+  title: string
+  description: string
+}
+
+interface Area {
+  id: AreaId
+  title: string
+  description: string
+  icon: typeof LayoutDashboard
+  pages: LeafPage[]
+}
+
+interface ModuleItem {
+  id: string
+  name: string
+  path: string
+  code: string
+  order: number
+  enabled: boolean
+  functions: PermissionFunction[]
+}
+
+interface PermissionFunction {
+  id: string
+  name: string
+  code: string
+  enabled: boolean
+  pages: PermissionPage[]
+}
+
+interface PermissionPage {
+  id: string
+  name: string
+  path: string
+  code: string
+  enabled: boolean
+  buttons: PermissionButton[]
+}
+
+interface PermissionButton {
+  id: string
+  name: string
+  code: string
+  enabled: boolean
+}
+
+const initialModules: ModuleItem[] = [
+  { id: 'xiaowan', name: '小万同学', path: '/xiaowan', code: 'xiaowan', order: 1, enabled: true, functions: [
+    { id: 'chat', name: '对话服务', code: 'chat', enabled: true, pages: [{ id: 'chat-workbench', name: '对话工作台', path: '/xiaowan/chat', code: 'chat-workbench', enabled: true, buttons: [{ id: 'new-chat', name: '新建会话', code: 'new-chat', enabled: true }, { id: 'send-message', name: '发送消息', code: 'send-message', enabled: true }] }] },
+    { id: 'knowledge', name: '知识配置', code: 'knowledge', enabled: true, pages: [{ id: 'knowledge-base', name: '知识库', path: '/xiaowan/knowledge', code: 'knowledge-base', enabled: true, buttons: [{ id: 'create-knowledge', name: '新增知识库', code: 'create-knowledge', enabled: true }, { id: 'publish-knowledge', name: '发布知识库', code: 'publish-knowledge', enabled: true }] }] },
+  ] },
+  { id: 'ecom-image', name: '电商生图', path: '/ecom-image', code: 'ecom-image', order: 2, enabled: true, functions: [
+    { id: 'task-production', name: '任务生产', code: 'task-production', enabled: true, pages: [{ id: 'task-list', name: '任务管理', path: '/ecom-image/tasks', code: 'task-list', enabled: true, buttons: [{ id: 'create-task', name: '新建任务', code: 'create-task', enabled: true }, { id: 'stop-task', name: '终止任务', code: 'stop-task', enabled: true }] }] },
+    { id: 'asset-configuration', name: '资源配置', code: 'asset-configuration', enabled: true, pages: [{ id: 'generation-assets', name: '生图资产', path: '/ecom-image/assets', code: 'generation-assets', enabled: true, buttons: [{ id: 'add-asset', name: '新增资产', code: 'add-asset', enabled: true }, { id: 'publish-asset', name: '发布资产', code: 'publish-asset', enabled: true }] }] },
+  ] },
+  { id: 'strategy', name: '经营策略引擎', path: '/strategy', code: 'strategy', order: 3, enabled: true, functions: [
+    { id: 'business-dashboard', name: '经营分析', code: 'business-dashboard', enabled: true, pages: [{ id: 'dashboard', name: '经营看板', path: '/strategy/dashboard', code: 'dashboard', enabled: true, buttons: [{ id: 'view-dashboard', name: '查看看板', code: 'view-dashboard', enabled: true }, { id: 'export-dashboard', name: '导出看板', code: 'export-dashboard', enabled: true }] }] },
+    { id: 'strategy-config', name: '策略配置', code: 'strategy-config', enabled: true, pages: [{ id: 'strategy-rules', name: '策略规则', path: '/strategy/rules', code: 'strategy-rules', enabled: true, buttons: [{ id: 'create-rule', name: '新建规则', code: 'create-rule', enabled: true }, { id: 'publish-rule', name: '发布规则', code: 'publish-rule', enabled: true }] }] },
+  ] },
+  { id: 'product', name: 'AI开品', path: '/ai-product', code: 'product', order: 4, enabled: true, functions: [
+    { id: 'product-creation', name: '商品创作', code: 'product-creation', enabled: true, pages: [{ id: 'product-studio', name: '开品工作台', path: '/ai-product/studio', code: 'product-studio', enabled: true, buttons: [{ id: 'create-product', name: '创建商品', code: 'create-product', enabled: true }, { id: 'generate-copy', name: '生成文案', code: 'generate-copy', enabled: true }] }] },
+    { id: 'product-library', name: '商品管理', code: 'product-library', enabled: true, pages: [{ id: 'product-list', name: '商品库', path: '/ai-product/library', code: 'product-list', enabled: true, buttons: [{ id: 'edit-product', name: '编辑商品', code: 'edit-product', enabled: true }, { id: 'archive-product', name: '归档商品', code: 'archive-product', enabled: true }] }] },
+  ] },
+  { id: 'media', name: 'AI媒体流', path: '/media-flow', code: 'media', order: 5, enabled: true, functions: [
+    { id: 'media-creation', name: '内容制作', code: 'media-creation', enabled: true, pages: [{ id: 'media-studio', name: '媒体工作台', path: '/media-flow/studio', code: 'media-studio', enabled: true, buttons: [{ id: 'create-media', name: '创建内容', code: 'create-media', enabled: true }, { id: 'submit-media', name: '提交生成', code: 'submit-media', enabled: true }] }] },
+    { id: 'media-assets', name: '素材管理', code: 'media-assets', enabled: true, pages: [{ id: 'media-library', name: '媒体素材库', path: '/media-flow/library', code: 'media-library', enabled: true, buttons: [{ id: 'upload-media', name: '上传素材', code: 'upload-media', enabled: true }, { id: 'delete-media', name: '删除素材', code: 'delete-media', enabled: true }] }] },
+  ] },
+  { id: 'lora', name: 'LORA美人', path: '/lora-beauty', code: 'lora', order: 6, enabled: true, functions: [
+    { id: 'model-training', name: '模型训练', code: 'model-training', enabled: true, pages: [{ id: 'training-tasks', name: '训练任务', path: '/lora-beauty/training', code: 'training-tasks', enabled: true, buttons: [{ id: 'create-training', name: '新建训练', code: 'create-training', enabled: true }, { id: 'stop-training', name: '终止训练', code: 'stop-training', enabled: true }] }] },
+    { id: 'model-management', name: '模型管理', code: 'model-management', enabled: true, pages: [{ id: 'model-library', name: '模型库', path: '/lora-beauty/models', code: 'model-library', enabled: true, buttons: [{ id: 'publish-model', name: '发布模型', code: 'publish-model', enabled: true }, { id: 'offline-model', name: '下线模型', code: 'offline-model', enabled: true }] }] },
+  ] },
+]
+
+type RoleStatus = 'enabled' | 'disabled'
+
+interface PlatformRole {
+  id: string
+  name: string
+  teamIds: string[]
+  memberCount: number
+  status: RoleStatus
+  pageIds: string[]
+}
+
+interface OrganizationRoleTemplate {
+  id: 'merchant-manager' | 'group-leader' | 'member'
+  name: string
+  description: string
+  managerPermissionIds: string[]
+}
+
+const availableTeams = [
+  { id: 'team-1', name: '澄明电商运营团队' },
+  { id: 'team-2', name: '京倍数字营销团队' },
+  { id: 'team-3', name: '万顷品牌管理团队' },
+]
+
+const permissionPages = [
+  { group: '小万同学', items: [{ id: 'chat-workbench', label: '对话工作台' }, { id: 'knowledge-base', label: '知识库' }] },
+  { group: '电商生图', items: [{ id: 'image-tasks', label: '任务管理' }, { id: 'image-assets', label: '生图资产' }] },
+  { group: '商智引擎', items: [{ id: 'business-dashboard', label: '经营看板' }, { id: 'data-center', label: '数据中心' }] },
+  { group: '团队协作', items: [{ id: 'team-members', label: '团队成员' }, { id: 'team-groups', label: '小组管理' }] },
+]
+
+const initialPlatformRoles: PlatformRole[] = [
+  { id: 'operations', name: '运营专员', teamIds: ['team-1', 'team-2'], memberCount: 6, status: 'enabled', pageIds: ['chat-workbench', 'image-tasks', 'image-assets', 'business-dashboard'] },
+  { id: 'analyst', name: '数据分析师', teamIds: ['team-1', 'team-2', 'team-3'], memberCount: 4, status: 'enabled', pageIds: ['business-dashboard', 'data-center'] },
+  { id: 'content-maker', name: '内容生产员', teamIds: ['team-1'], memberCount: 2, status: 'disabled', pageIds: ['chat-workbench', 'image-tasks', 'image-assets'] },
+]
+
+const managerPermissionModules = [
+  { id: 'manager-team', label: '团队管理', pages: [{ id: 'manager-team-list', label: '团队列表' }, { id: 'manager-team-members', label: '成员管理' }, { id: 'manager-team-groups', label: '小组管理' }, { id: 'manager-team-platforms', label: '平台管理' }] },
+  { id: 'manager-overview', label: '数据概览', pages: [{ id: 'manager-overview-dashboard', label: '经营数据概览' }, { id: 'manager-overview-center', label: '数据中心' }, { id: 'manager-overview-report', label: '日报概览' }] },
+  { id: 'manager-tasks', label: '任务管理', pages: [{ id: 'manager-tasks-list', label: '任务列表' }, { id: 'manager-tasks-review', label: '任务审核' }, { id: 'manager-tasks-log', label: '任务日志' }] },
+]
+
+const allManagerPermissionIds = managerPermissionModules.flatMap((module) => module.pages.map((page) => page.id))
+
+const initialOrganizationRoles: OrganizationRoleTemplate[] = [
+  { id: 'merchant-manager', name: '商户管理员', description: '负责商户团队整体管理，默认拥有 Manager 端全部权限。', managerPermissionIds: allManagerPermissionIds },
+  { id: 'group-leader', name: '小组长', description: '用于 Manager 端身份校验，默认不配置具体后台功能。', managerPermissionIds: [] },
+  { id: 'member', name: '组员', description: '仅作为成员组织身份占位，不参与权限分配。', managerPermissionIds: [] },
+]
+
+interface BillingRule {
+  id: string
+  module: string
+  workflow: string
+  name: string
+  mode: '固定值' | '按时长'
+  fixedFee: number
+  perSecondFee: number
+  minimumFee: number
+  enabled: boolean
+  parameter: string
+}
+
+interface BillingPackage {
+  id: string
+  name: string
+  code: string
+  discount: number
+  order: number
+  enabled: boolean
+  coverage: { id: string; module: string; workflow: string; discount: number }[]
+}
+
+const billingModuleTabs = ['全部', '电商生图', 'AI媒体流', 'AI开品', '小万同学', '经营策略', 'LORA美人']
+
+const initialBillingRules: BillingRule[] = [
+  { id: 'billing-1', module: '电商生图', workflow: 'custom_1773309105734', name: 'FlowX Pro文/图生图', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-2', module: '电商生图', workflow: 'custom_1773309105734_copy_1774512055761', name: 'FlowX Pro文/图生图花里子', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-3', module: '电商生图', workflow: 'custom_1773482135865', name: '创想文生图（主图）', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-4', module: '电商生图', workflow: 'custom_1773482135865_copy_1774452003153', name: '创想文生图（主图）技术测试', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-5', module: '电商生图', workflow: 'custom_1773554656103', name: 'ai图文（详情页）', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-6', module: '电商生图', workflow: 'custom_1773605398462', name: '丝袜精修', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-7', module: '电商生图', workflow: 'custom_1773605398462_copy_1777978891172', name: '保暖内衣精修', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+  { id: 'billing-8', module: '电商生图', workflow: 'custom_1773833476539', name: '产品一键扣透明图', mode: '固定值', fixedFee: 40, perSecondFee: 0, minimumFee: 40, enabled: true, parameter: 'mode' },
+  { id: 'billing-9', module: '电商生图', workflow: 'custom_1774260737612', name: '内衣裤文胸精修', mode: '固定值', fixedFee: 240, perSecondFee: 0, minimumFee: 240, enabled: true, parameter: '—' },
+]
+
+const initialBillingPackages: BillingPackage[] = [
+  { id: 'wanpai', name: '万派专属', code: 'wanpai', discount: 2.8, order: 0, enabled: true, coverage: [{ id: 'wanpai-ecom', module: '电商生图', workflow: '全部工作流', discount: 2.8 }] },
+  { id: 'flagship', name: '旗舰版', code: 'flagship', discount: 3.8, order: 1, enabled: true, coverage: [{ id: 'flagship-ecom', module: '电商生图', workflow: '全部工作流', discount: 3.8 }] },
+  { id: 'excellence', name: '卓越版', code: 'excellence', discount: 5, order: 2, enabled: true, coverage: [{ id: 'excellence-ecom', module: '电商生图', workflow: '全部工作流', discount: 5 }] },
+  { id: 'lite', name: '轻量版', code: 'lite', discount: 10, order: 3, enabled: true, coverage: [{ id: 'lite-ecom', module: '电商生图', workflow: '全部工作流', discount: 10 }] },
+]
+
+const areas: Area[] = [
+  {
+    id: 'overview',
+    title: '系统概览',
+    description: '统一查看平台经营、服务健康与需要处理的系统风险。',
+    icon: LayoutDashboard,
+    pages: [
+      { id: 'platform-business', title: '平台经营概览', description: '查看商户、用户、订单、任务与消耗的整体运行情况。' },
+      { id: 'system-health', title: '系统健康概览', description: '查看服务状态、外部连接和系统异常。' },
+    ],
+  },
+  {
+    id: 'permissions',
+    title: '权限管理',
+    description: '维护平台权限目录、管理账号与平台角色，不包含商户内部业务角色。',
+    icon: ShieldCheck,
+    pages: [
+      { id: 'function-permissions', title: '功能权限', description: '以模块、功能、页面、按钮四级资源树维护平台权限点。' },
+      { id: 'administrators', title: '管理员管理', description: '管理超管、系统管理员及其账号状态。' },
+      { id: 'platform-roles', title: '角色管理', description: '配置平台角色可获得的权限点集合。' },
+    ],
+  },
+  {
+    id: 'teams',
+    title: '团队与用户',
+    description: '从平台视角管理商户团队、用户归属和可开放模块。',
+    icon: UsersRound,
+    pages: [
+      { id: 'merchant-teams', title: '商户团队管理', description: '维护商户团队基础信息、启停状态与服务范围。' },
+      { id: 'users', title: '用户管理', description: '查看平台用户的账号状态、商户归属与访问记录。' },
+    ],
+  },
+  {
+    id: 'billing',
+    title: '计费管理',
+    description: '统一管理豌豆额度、消耗明细和平台计费规则。',
+    icon: CircleDollarSign,
+    pages: [
+      { id: 'pea-consumption', title: '豌豆消耗记录', description: '追踪任务与商户维度的消耗、异常扣减和来源。' },
+      { id: 'pea-quota', title: '豌豆额度管理', description: '为商户团队分配、回收或调整可用额度。' },
+      { id: 'billing-packages', title: '计费套餐设置', description: '维护可向商户团队配置的计费套餐。' },
+      { id: 'billing-rules', title: '计费规则配置', description: '配置各项平台能力的计费方式、单价和生效状态。' },
+    ],
+  },
+  {
+    id: 'ai',
+    title: 'AI 配置',
+    description: '配置电商生图与其他 AI 产品能力所需的模型、工作流和资产。',
+    icon: WandSparkles,
+    pages: [
+      { id: 'ecommerce-image', title: '电商生图', description: '集中维护电商生图的模型、工作流、模板与生产资产。' },
+      { id: 'business-engine', title: '经营引擎', description: '维护经营引擎的能力配置、服务状态与可用范围。' },
+      { id: 'xiaowan', title: '小万', description: '维护小万产品的模型能力、服务配置与版本信息。' },
+    ],
+  },
+  {
+    id: 'operations',
+    title: '系统运维',
+    description: '处理平台系统运行、关键连接和维护任务。',
+    icon: Settings2,
+    pages: [
+      { id: 'system-operations', title: '系统运维', description: '查看运行状态、维护记录和需要人工处理的系统事项。' },
+    ],
+  },
+]
+
+function getRoute() {
+  const [areaId, pageId] = window.location.hash.replace(/^#platform-admin\/?/, '').split('/')
+  const area = areas.find((item) => item.id === areaId) ?? areas[0]
+  const page = area.pages.find((item) => item.id === pageId) ?? area.pages[0]
+  return { area, page }
+}
+
+function routeTo(areaId: AreaId, pageId: string) {
+  window.location.hash = `#platform-admin/${areaId}/${pageId}`
+}
+
+function FunctionPermissionsPage() {
+  const [modules, setModules] = useState(initialModules)
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set(['module:ecom-image', 'function:ecom-image:task-production', 'page:ecom-image:task-production:task-list']))
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys((current) => {
+      const next = new Set(current)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
+  const ensureExpanded = (key: string) => {
+    setExpandedKeys((current) => current.has(key) ? current : new Set([...current, key]))
+  }
+
+  const toggleStatus = (id: string) => {
+    setModules((current) => current.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item))
+  }
+
+  const deleteModule = (id: string) => {
+    const target = modules.find((item) => item.id === id)
+    if (target && window.confirm(`确定删除「${target.name}」吗？`)) {
+      setModules((current) => current.filter((item) => item.id !== id))
+    }
+  }
+
+  const functionCount = modules.reduce((total, module) => total + module.functions.length, 0)
+  const pageCount = modules.reduce((total, module) => total + module.functions.reduce((sum, feature) => sum + feature.pages.length, 0), 0)
+  const buttonCount = modules.reduce((total, module) => total + module.functions.reduce((sum, feature) => sum + feature.pages.reduce((count, page) => count + page.buttons.length, 0), 0), 0)
+
+  const notifyAdd = (type: string, parentName: string) => window.alert(`将在「${parentName}」下新增${type}。`)
+
+  return (
+    <main className="platform-admin-main module-management-page" id="main-content" tabIndex={-1} aria-labelledby="function-permissions-title">
+      <header className="module-management-page__toolbar">
+        <div>
+          <h1 id="function-permissions-title" className="sr-only">功能权限</h1>
+          <p>主站前端按角色关联的资源渲染。当前 {modules.length} 个模块、{functionCount} 个功能、{pageCount} 个页面、{buttonCount} 个按钮。</p>
+        </div>
+        <button className="module-management-page__create" type="button" onClick={() => window.alert('新增模块表单将在下一步补充。')}>
+          <Plus aria-hidden="true" />
+          新增模块
+        </button>
+      </header>
+
+      <div className="permission-tree-path" aria-label="权限资源层级">
+        <span>模块</span><ChevronRight aria-hidden="true" /><span>功能</span><ChevronRight aria-hidden="true" /><span>页面</span><ChevronRight aria-hidden="true" /><span>按钮</span>
+      </div>
+
+      <section className="permission-resource-tree" aria-label="功能权限资源树">
+        {modules.map((item) => {
+          const moduleKey = `module:${item.id}`
+          const isExpanded = expandedKeys.has(moduleKey)
+          return (
+            <article key={item.id} className={item.enabled ? 'module-management-row' : 'module-management-row is-disabled'}>
+              <div className="module-management-row__summary">
+                <button className="module-management-row__toggle" type="button" aria-label={`${isExpanded ? '收起' : '展开'}${item.name}`} aria-expanded={isExpanded} onClick={() => toggleExpanded(moduleKey)}>
+                  <ChevronRight aria-hidden="true" />
+                </button>
+                <span className="permission-level permission-level--module">模块</span>
+                <strong>{item.name}</strong>
+                <span>{item.path}</span>
+                <code>{item.code}</code>
+                <small>序 {item.order}</small>
+              </div>
+              <div className="module-management-row__actions">
+                <span className={item.enabled ? 'module-status' : 'module-status is-disabled'}>{item.enabled ? '启用' : '停用'}</span>
+                <button type="button" aria-label={`编辑${item.name}`} title="编辑模块" onClick={() => window.alert(`编辑「${item.name}」的表单将在下一步补充。`)}><Pencil aria-hidden="true" /></button>
+                <button type="button" aria-label={`${item.enabled ? '停用' : '启用'}${item.name}`} title={item.enabled ? '停用模块' : '启用模块'} onClick={() => toggleStatus(item.id)}><Power aria-hidden="true" /></button>
+                <button type="button" aria-label={`删除${item.name}`} title="删除模块" onClick={() => deleteModule(item.id)}><Trash2 aria-hidden="true" /></button>
+                <button className="module-management-row__add-button" type="button" onClick={() => { ensureExpanded(moduleKey); notifyAdd('功能', item.name) }}><Plus aria-hidden="true" />新增功能</button>
+              </div>
+              {isExpanded ? <div className="permission-resource-children permission-resource-children--function">
+                {item.functions.map((feature) => {
+                  const functionKey = `function:${item.id}:${feature.id}`
+                  const isFunctionOpen = expandedKeys.has(functionKey)
+                  return <section key={feature.id} className="permission-resource-node">
+                    <div className="permission-resource-row permission-resource-row--function">
+                      <button className="permission-resource-row__toggle" type="button" aria-label={`${isFunctionOpen ? '收起' : '展开'}${feature.name}`} aria-expanded={isFunctionOpen} onClick={() => toggleExpanded(functionKey)}><ChevronRight aria-hidden="true" /></button>
+                      <span className="permission-level permission-level--function">功能</span>
+                      <strong>{feature.name}</strong><code>{feature.code}</code>
+                      <span className={feature.enabled ? 'module-status' : 'module-status is-disabled'}>{feature.enabled ? '启用' : '停用'}</span>
+                      <button className="permission-resource-row__add" type="button" onClick={() => { ensureExpanded(functionKey); notifyAdd('页面', feature.name) }}><Plus aria-hidden="true" />新增页面</button>
+                    </div>
+                    {isFunctionOpen ? <div className="permission-resource-children permission-resource-children--page">
+                      {feature.pages.map((page) => {
+                        const pageKey = `page:${item.id}:${feature.id}:${page.id}`
+                        const isPageOpen = expandedKeys.has(pageKey)
+                        return <section key={page.id} className="permission-resource-node">
+                          <div className="permission-resource-row permission-resource-row--page">
+                            <button className="permission-resource-row__toggle" type="button" aria-label={`${isPageOpen ? '收起' : '展开'}${page.name}`} aria-expanded={isPageOpen} onClick={() => toggleExpanded(pageKey)}><ChevronRight aria-hidden="true" /></button>
+                            <span className="permission-level permission-level--page">页面</span>
+                            <strong>{page.name}</strong><span className="permission-resource-row__path">{page.path}</span><code>{page.code}</code>
+                            <span className={page.enabled ? 'module-status' : 'module-status is-disabled'}>{page.enabled ? '启用' : '停用'}</span>
+                            <button className="permission-resource-row__add" type="button" onClick={() => { ensureExpanded(pageKey); notifyAdd('按钮', page.name) }}><Plus aria-hidden="true" />新增按钮</button>
+                          </div>
+                          {isPageOpen ? <div className="permission-resource-children permission-resource-children--button">
+                            {page.buttons.map((button) => <div key={button.id} className="permission-resource-row permission-resource-row--button">
+                              <span className="permission-resource-row__toggle-spacer" />
+                              <span className="permission-level permission-level--button">按钮</span>
+                              <strong>{button.name}</strong><code>{button.code}</code>
+                              <span className={button.enabled ? 'module-status' : 'module-status is-disabled'}>{button.enabled ? '启用' : '停用'}</span>
+                            </div>)}
+                          </div> : null}
+                        </section>
+                      })}
+                    </div> : null}
+                  </section>
+                })}
+              </div> : null}
+            </article>
+          )
+        })}
+      </section>
+    </main>
+  )
+}
+
+function TeamManagementPage() {
+  return <main className="platform-admin-main platform-admin-embedded-workspace" id="main-content" tabIndex={-1} aria-label="团队管理">
+    <AdminPage key="platform-admin-team" activeTab="team" context="system" />
+  </main>
+}
+
+function OrganizationRolePermissionDialog({ role, onClose, onSave }: { role: OrganizationRoleTemplate; onClose: () => void; onSave: (permissionIds: string[]) => void }) {
+  const [selectedIds, setSelectedIds] = useState(() => new Set(role.managerPermissionIds))
+
+  const toggleModule = (moduleId: string) => {
+    const module = managerPermissionModules.find((item) => item.id === moduleId)
+    if (!module) return
+    const pageIds = module.pages.map((page) => page.id)
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      const isSelected = pageIds.every((id) => next.has(id))
+      pageIds.forEach((id) => isSelected ? next.delete(id) : next.add(id))
+      return next
+    })
+  }
+
+  const togglePage = (pageId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      next.has(pageId) ? next.delete(pageId) : next.add(pageId)
+      return next
+    })
+  }
+
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <form className="ledger-dialog platform-role-dialog manager-role-dialog" onSubmit={(event) => { event.preventDefault(); onSave([...selectedIds]) }}>
+      <header><div><span className="eyebrow">manager_role</span><h3>编辑{role.name}权限</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={onClose}>×</button></header>
+      <p className="manager-role-dialog__hint">配置 Manager 端可访问的模块和页面。小组长默认仅通过登录校验，权限由此处按需开放。</p>
+      <fieldset className="dialog-field platform-role-dialog__field"><legend>Manager 端后台权限</legend><div className="manager-role-dialog__permissions">{managerPermissionModules.map((module) => {
+        const pageIds = module.pages.map((page) => page.id)
+        const isChecked = pageIds.every((id) => selectedIds.has(id))
+        const isPartial = !isChecked && pageIds.some((id) => selectedIds.has(id))
+        return <section key={module.id}><label className="manager-role-dialog__module"><input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => toggleModule(module.id)} />{module.label}</label><div>{module.pages.map((page) => <label key={page.id}><input type="checkbox" checked={selectedIds.has(page.id)} onChange={() => togglePage(page.id)} />{page.label}</label>)}</div></section>
+      })}</div></fieldset>
+      <footer><button className="secondary-action" type="button" onClick={onClose}>取消</button><button className="primary-action" type="submit">保存权限</button></footer>
+    </form>
+  </div>
+}
+
+function PlatformRolesPage() {
+  const [roleTab, setRoleTab] = useState<'organization' | 'business'>('organization')
+  const [businessRoles, setBusinessRoles] = useState(initialPlatformRoles)
+  const [editingBusinessRole, setEditingBusinessRole] = useState<PlatformRole | null>(null)
+  const [organizationRoles, setOrganizationRoles] = useState(initialOrganizationRoles)
+  const [editingOrganizationRole, setEditingOrganizationRole] = useState<OrganizationRoleTemplate | null>(null)
+
+  const toggleRoleStatus = (id: string) => {
+    setBusinessRoles((current) => current.map((role) => role.id === id ? { ...role, status: role.status === 'enabled' ? 'disabled' : 'enabled' } : role))
+  }
+
+  const saveRole = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingBusinessRole) return
+    const name = editingBusinessRole.name.trim()
+    if (!name) return
+    const nextRole = { ...editingBusinessRole, name }
+    setBusinessRoles((current) => nextRole.id ? current.map((role) => role.id === nextRole.id ? nextRole : role) : [...current, { ...nextRole, id: `role-${Date.now()}` }])
+    setEditingBusinessRole(null)
+  }
+
+  return <main className="platform-admin-main platform-role-page" id="main-content" tabIndex={-1} aria-labelledby="platform-role-title">
+    <header className="platform-role-page__header">
+      <div>
+        <h1 id="platform-role-title">角色管理</h1>
+        <p>组织角色管理 Manager 端后台权限；业务角色管理生产端功能与数据权限。</p>
+      </div>
+    </header>
+
+    <nav className="platform-role-tabs" aria-label="角色类型">
+      <button type="button" className={roleTab === 'organization' ? 'active' : ''} onClick={() => setRoleTab('organization')}>组织角色</button>
+      <button type="button" className={roleTab === 'business' ? 'active' : ''} onClick={() => setRoleTab('business')}>业务角色</button>
+    </nav>
+
+    {roleTab === 'organization' ? <section className="platform-organization-role-table" aria-label="组织角色列表">
+      <div className="platform-organization-role-table__head" role="row"><span role="columnheader">组织角色</span><span role="columnheader">角色说明</span><span role="columnheader">Manager 端默认权限</span><span role="columnheader">操作</span></div>
+      {organizationRoles.map((role) => <article className="platform-organization-role-table__row" key={role.id} role="row">
+        <strong role="cell">{role.name}</strong><span role="cell">{role.description}</span><span role="cell" className={role.managerPermissionIds.length ? 'platform-organization-role-table__scope' : 'platform-organization-role-table__scope is-empty'}>{role.id === 'member' ? '固定无权限' : role.managerPermissionIds.length === allManagerPermissionIds.length ? 'Manager 端全部模块和页面' : `${role.managerPermissionIds.length} 个页面`}</span><div role="cell"><button type="button" disabled={role.id === 'member'} title={role.id === 'member' ? '组员角色不参与权限分配' : '编辑 Manager 端权限'} onClick={() => setEditingOrganizationRole({ ...role, managerPermissionIds: [...role.managerPermissionIds] })}><Pencil aria-hidden="true" />权限编辑</button></div>
+      </article>)}
+    </section> : <>
+      <div className="platform-role-business-toolbar"><p>生产端的角色默认权限；商户管理员分配时可在团队、小组已开通模块内调整。</p><button className="module-management-page__create" type="button" onClick={() => setEditingBusinessRole({ id: '', name: '', teamIds: [], memberCount: 0, status: 'enabled', pageIds: [] })}><Plus aria-hidden="true" />新增角色</button></div>
+      <section className="platform-role-table" aria-label="系统预设业务角色列表">
+        <div className="platform-role-table__head" role="row"><span role="columnheader">角色名称</span><span role="columnheader">可用团队</span><span role="columnheader">成员数量</span><span role="columnheader">状态</span><span role="columnheader">操作</span></div>
+        {businessRoles.map((role) => {
+          const teamNames = availableTeams.filter((team) => role.teamIds.includes(team.id)).map((team) => team.name)
+          return <article key={role.id} className="platform-role-table__row" role="row"><strong role="cell">{role.name}</strong><div className="platform-role-table__teams" role="cell">{teamNames.length === availableTeams.length ? <span>全部团队</span> : teamNames.map((name) => <span key={name}>{name}</span>)}</div><span role="cell">{role.memberCount}</span><span role="cell" className={role.status === 'enabled' ? 'module-status' : 'module-status is-disabled'}>{role.status === 'enabled' ? '启用' : '停用'}</span><div className="platform-role-table__actions" role="cell"><button type="button" onClick={() => setEditingBusinessRole({ ...role, teamIds: [...role.teamIds], pageIds: [...role.pageIds] })}><Pencil aria-hidden="true" />编辑</button><button type="button" onClick={() => toggleRoleStatus(role.id)}><Power aria-hidden="true" />{role.status === 'enabled' ? '停用' : '启用'}</button><button type="button" className="danger" disabled={role.status === 'enabled'} title={role.status === 'enabled' ? '请先停用角色后再删除' : '删除角色'} onClick={() => setBusinessRoles((current) => current.filter((item) => item.id !== role.id))}><Trash2 aria-hidden="true" />删除</button></div></article>
+        })}
+      </section>
+    </>}
+
+    {editingOrganizationRole ? <OrganizationRolePermissionDialog role={editingOrganizationRole} onClose={() => setEditingOrganizationRole(null)} onSave={(managerPermissionIds) => { setOrganizationRoles((current) => current.map((role) => role.id === editingOrganizationRole.id ? { ...role, managerPermissionIds } : role)); setEditingOrganizationRole(null) }} /> : null}
+    {editingBusinessRole ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingBusinessRole(null)}>
+      <form className="ledger-dialog platform-role-dialog" onSubmit={saveRole}>
+        <header><div><span className="eyebrow">business_role</span><h3>{editingBusinessRole.id ? '编辑业务角色' : '新增业务角色'}</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setEditingBusinessRole(null)}>×</button></header>
+        <label className="dialog-field"><span>角色名称</span><input value={editingBusinessRole.name} onChange={(event) => setEditingBusinessRole({ ...editingBusinessRole, name: event.target.value })} placeholder="例如：运营专员" required /></label>
+        <fieldset className="dialog-field platform-role-dialog__field"><legend>可用团队</legend><div className="platform-role-dialog__options">{availableTeams.map((team) => <label key={team.id}><input type="checkbox" checked={editingBusinessRole.teamIds.includes(team.id)} onChange={() => setEditingBusinessRole({ ...editingBusinessRole, teamIds: editingBusinessRole.teamIds.includes(team.id) ? editingBusinessRole.teamIds.filter((id) => id !== team.id) : [...editingBusinessRole.teamIds, team.id] })} />{team.name}</label>)}</div></fieldset>
+        <fieldset className="dialog-field platform-role-dialog__field"><legend>生产端页面权限</legend><p>角色默认可访问的生产端页面；实际可用范围仍受团队、小组模块授权限制。</p><div className="platform-role-dialog__permissions">{permissionPages.map((group) => <section key={group.group}><strong>{group.group}</strong>{group.items.map((page) => <label key={page.id}><input type="checkbox" checked={editingBusinessRole.pageIds.includes(page.id)} onChange={() => setEditingBusinessRole({ ...editingBusinessRole, pageIds: editingBusinessRole.pageIds.includes(page.id) ? editingBusinessRole.pageIds.filter((id) => id !== page.id) : [...editingBusinessRole.pageIds, page.id] })} />{page.label}</label>)}</section>)}</div></fieldset>
+        <footer><button className="secondary-action" type="button" onClick={() => setEditingBusinessRole(null)}>取消</button><button className="primary-action" type="submit">保存</button></footer>
+      </form>
+    </div> : null}
+  </main>
+}
+
+function BillingRulesPage() {
+  const [activeModule, setActiveModule] = useState('全部')
+  const [rules, setRules] = useState(initialBillingRules)
+  const [editingRule, setEditingRule] = useState<BillingRule | null>(null)
+  const displayedRules = rules.filter((rule) => activeModule === '全部' || rule.module === activeModule)
+
+  const toggleRuleStatus = (id: string) => {
+    setRules((current) => current.map((rule) => rule.id === id ? { ...rule, enabled: !rule.enabled } : rule))
+  }
+
+  const saveRule = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingRule) return
+    const workflow = editingRule.workflow.trim()
+    const name = editingRule.name.trim()
+    if (!workflow || !name) return
+    const nextRule = { ...editingRule, workflow, name, parameter: editingRule.parameter.trim() || '—' }
+    setRules((current) => nextRule.id ? current.map((rule) => rule.id === nextRule.id ? nextRule : rule) : [...current, { ...nextRule, id: `billing-rule-${Date.now()}` }])
+    setEditingRule(null)
+  }
+
+  const createRule = () => {
+    setEditingRule({ id: '', module: activeModule === '全部' ? '电商生图' : activeModule, workflow: '', name: '', mode: '固定值', fixedFee: 0, perSecondFee: 0, minimumFee: 0, enabled: true, parameter: '—' })
+  }
+
+  return <main className="platform-admin-main billing-rules-page" id="main-content" tabIndex={-1} aria-labelledby="billing-rules-title">
+    <header className="billing-rules-page__header">
+      <div>
+        <h1 id="billing-rules-title">计费配置列表</h1>
+        <p>配置各工作流的豌豆扣费规则</p>
+      </div>
+      <button className="billing-rules-page__create" type="button" onClick={createRule}><Plus aria-hidden="true" />新增配置</button>
+    </header>
+
+    <nav className="billing-rules-tabs" aria-label="按模块筛选计费配置">
+      {billingModuleTabs.map((module) => <button key={module} className={activeModule === module ? 'active' : ''} type="button" onClick={() => setActiveModule(module)}>{module}</button>)}
+    </nav>
+
+    <section className="billing-rules-table-wrap" aria-label="工作流计费配置列表">
+      <table className="billing-rules-table">
+        <thead>
+          <tr><th>模块</th><th>工作流</th><th>名称</th><th>计费模式</th><th>固定费用</th><th>每秒费用</th><th>最低条额</th><th>状态</th><th>参数化</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {displayedRules.map((rule) => <tr key={rule.id}>
+            <td><span className="billing-module-chip">{rule.module}</span></td>
+            <td><code>{rule.workflow}</code></td>
+            <td className="billing-rules-table__name">{rule.name}</td>
+            <td><span className="billing-mode-chip">{rule.mode}</span></td>
+            <td>{rule.fixedFee}</td>
+            <td>{rule.perSecondFee}</td>
+            <td>{rule.minimumFee}</td>
+            <td><label className="billing-rule-switch"><input type="checkbox" checked={rule.enabled} onChange={() => toggleRuleStatus(rule.id)} aria-label={`${rule.enabled ? '停用' : '启用'}${rule.name}计费规则`} /><span aria-hidden="true" /></label></td>
+            <td>{rule.parameter === '—' ? <span className="billing-empty-parameter">—</span> : <button className="billing-parameter-chip" type="button" onClick={() => setEditingRule({ ...rule })}><ChevronRight aria-hidden="true" />{rule.parameter}</button>}</td>
+            <td><div className="billing-rules-table__actions"><button type="button" title="编辑配置" aria-label={`编辑${rule.name}`} onClick={() => setEditingRule({ ...rule })}><Pencil aria-hidden="true" /></button><button className="danger" type="button" title="删除配置" aria-label={`删除${rule.name}`} onClick={() => window.confirm(`确定删除「${rule.name}」的计费配置吗？`) && setRules((current) => current.filter((item) => item.id !== rule.id))}><Trash2 aria-hidden="true" /></button></div></td>
+          </tr>)}
+        </tbody>
+      </table>
+      {displayedRules.length === 0 ? <p className="billing-rules-table__empty">该模块暂未配置工作流计费规则。</p> : null}
+    </section>
+
+    {editingRule ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingRule(null)}>
+      <form className="ledger-dialog billing-rule-dialog" onSubmit={saveRule}>
+        <header><div><span className="eyebrow">workflow_billing</span><h3>{editingRule.id ? '编辑计费配置' : '新增计费配置'}</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setEditingRule(null)}>×</button></header>
+        <div className="billing-rule-dialog__grid">
+          <label className="dialog-field"><span>模块</span><select value={editingRule.module} onChange={(event) => setEditingRule({ ...editingRule, module: event.target.value })}>{billingModuleTabs.filter((module) => module !== '全部').map((module) => <option key={module} value={module}>{module}</option>)}</select></label>
+          <label className="dialog-field"><span>计费模式</span><select value={editingRule.mode} onChange={(event) => setEditingRule({ ...editingRule, mode: event.target.value as BillingRule['mode'] })}><option value="固定值">固定值</option><option value="按时长">按时长</option></select></label>
+          <label className="dialog-field"><span>工作流</span><input value={editingRule.workflow} onChange={(event) => setEditingRule({ ...editingRule, workflow: event.target.value })} placeholder="例如：custom_1773309105734" required /></label>
+          <label className="dialog-field"><span>配置名称</span><input value={editingRule.name} onChange={(event) => setEditingRule({ ...editingRule, name: event.target.value })} placeholder="例如：FlowX Pro文/图生图" required /></label>
+          <label className="dialog-field"><span>固定费用（豌豆）</span><input type="number" min="0" value={editingRule.fixedFee} onChange={(event) => setEditingRule({ ...editingRule, fixedFee: Number(event.target.value) })} /></label>
+          <label className="dialog-field"><span>每秒费用（豌豆）</span><input type="number" min="0" value={editingRule.perSecondFee} onChange={(event) => setEditingRule({ ...editingRule, perSecondFee: Number(event.target.value) })} /></label>
+          <label className="dialog-field"><span>最低条额（豌豆）</span><input type="number" min="0" value={editingRule.minimumFee} onChange={(event) => setEditingRule({ ...editingRule, minimumFee: Number(event.target.value) })} /></label>
+          <label className="dialog-field"><span>参数化字段</span><input value={editingRule.parameter === '—' ? '' : editingRule.parameter} onChange={(event) => setEditingRule({ ...editingRule, parameter: event.target.value })} placeholder="无参数化可留空" /></label>
+        </div>
+        <label className="billing-rule-dialog__status"><input type="checkbox" checked={editingRule.enabled} onChange={(event) => setEditingRule({ ...editingRule, enabled: event.target.checked })} />启用该计费规则</label>
+        <footer><button className="secondary-action" type="button" onClick={() => setEditingRule(null)}>取消</button><button className="primary-action" type="submit">保存配置</button></footer>
+      </form>
+    </div> : null}
+  </main>
+}
+
+function BillingPackagesPage() {
+  const [packages, setPackages] = useState(initialBillingPackages)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  const [editingPackage, setEditingPackage] = useState<BillingPackage | null>(null)
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const togglePackageStatus = (id: string) => {
+    setPackages((current) => current.map((item) => item.id === id ? { ...item, enabled: !item.enabled } : item))
+  }
+
+  const savePackage = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!editingPackage) return
+    const name = editingPackage.name.trim()
+    const code = editingPackage.code.trim()
+    if (!name || !code) return
+    const nextPackage = { ...editingPackage, name, code }
+    setPackages((current) => nextPackage.id ? current.map((item) => item.id === nextPackage.id ? nextPackage : item) : [...current, { ...nextPackage, id: `billing-package-${Date.now()}`, coverage: [{ id: `coverage-${Date.now()}`, module: '电商生图', workflow: '全部工作流', discount: nextPackage.discount }] }])
+    setEditingPackage(null)
+  }
+
+  return <main className="platform-admin-main billing-packages-page" id="main-content" tabIndex={-1} aria-labelledby="billing-packages-title">
+    <header className="billing-packages-page__header">
+      <div>
+        <h1 id="billing-packages-title">套餐列表</h1>
+        <p>管理电商生图折扣套餐，点击行展开工作流覆盖配置</p>
+      </div>
+      <button className="billing-rules-page__create" type="button" onClick={() => setEditingPackage({ id: '', name: '', code: '', discount: 10, order: packages.length, enabled: true, coverage: [] })}><Plus aria-hidden="true" />新建套餐</button>
+    </header>
+
+    <section className="billing-packages-table-wrap" aria-label="计费套餐列表">
+      <table className="billing-packages-table">
+        <thead><tr><th aria-label="展开套餐" /><th>名称</th><th>编码</th><th>折扣率</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          {[...packages].sort((a, b) => a.order - b.order).map((item) => {
+            const isExpanded = expandedIds.has(item.id)
+            return <Fragment key={item.id}>
+              <tr className={isExpanded ? 'is-expanded' : ''}>
+                <td><button className="billing-package-expand" type="button" aria-label={`${isExpanded ? '收起' : '展开'}${item.name}工作流覆盖`} aria-expanded={isExpanded} onClick={() => toggleExpanded(item.id)}><ChevronRight aria-hidden="true" /></button></td>
+                <td className="billing-packages-table__name">{item.name}</td>
+                <td><code>{item.code}</code></td>
+                <td><span className="billing-package-discount">{item.discount.toFixed(1)}折</span></td>
+                <td>{item.order}</td>
+                <td><label className="billing-package-switch"><input type="checkbox" checked={item.enabled} onChange={() => togglePackageStatus(item.id)} aria-label={`${item.enabled ? '停用' : '启用'}${item.name}套餐`} /><span aria-hidden="true" /></label></td>
+                <td><div className="billing-rules-table__actions"><button type="button" title="编辑套餐" aria-label={`编辑${item.name}`} onClick={() => setEditingPackage({ ...item, coverage: [...item.coverage] })}><Pencil aria-hidden="true" /></button><button className="danger" type="button" title="删除套餐" aria-label={`删除${item.name}`} onClick={() => window.confirm(`确定删除「${item.name}」套餐吗？`) && setPackages((current) => current.filter((packageItem) => packageItem.id !== item.id))}><Trash2 aria-hidden="true" /></button></div></td>
+              </tr>
+              {isExpanded ? <tr className="billing-package-coverage-row"><td colSpan={7}><section className="billing-package-coverage">
+                <header><div><strong>工作流覆盖配置</strong><span>未单独配置时，工作流默认使用套餐折扣。</span></div><button type="button" onClick={() => window.alert('新增工作流覆盖项将在下一步接入。')}><Plus aria-hidden="true" />新增覆盖项</button></header>
+                <div className="billing-package-coverage__head"><span>模块</span><span>工作流</span><span>折扣率</span></div>
+                {item.coverage.map((coverage) => <div className="billing-package-coverage__row" key={coverage.id}><span>{coverage.module}</span><span>{coverage.workflow}</span><span>{coverage.discount.toFixed(1)}折</span></div>)}
+              </section></td></tr> : null}
+            </Fragment>
+          })}
+        </tbody>
+      </table>
+    </section>
+
+    {editingPackage ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingPackage(null)}>
+      <form className="ledger-dialog billing-package-dialog" onSubmit={savePackage}>
+        <header><div><span className="eyebrow">billing_package</span><h3>{editingPackage.id ? '编辑套餐' : '新建套餐'}</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setEditingPackage(null)}>×</button></header>
+        <div className="billing-rule-dialog__grid">
+          <label className="dialog-field"><span>套餐名称</span><input value={editingPackage.name} onChange={(event) => setEditingPackage({ ...editingPackage, name: event.target.value })} placeholder="例如：旗舰版" required /></label>
+          <label className="dialog-field"><span>套餐编码</span><input value={editingPackage.code} onChange={(event) => setEditingPackage({ ...editingPackage, code: event.target.value })} placeholder="例如：flagship" required /></label>
+          <label className="dialog-field"><span>折扣率</span><input type="number" min="0" max="10" step="0.1" value={editingPackage.discount} onChange={(event) => setEditingPackage({ ...editingPackage, discount: Number(event.target.value) })} required /></label>
+          <label className="dialog-field"><span>排序</span><input type="number" min="0" value={editingPackage.order} onChange={(event) => setEditingPackage({ ...editingPackage, order: Number(event.target.value) })} required /></label>
+        </div>
+        <label className="billing-rule-dialog__status"><input type="checkbox" checked={editingPackage.enabled} onChange={(event) => setEditingPackage({ ...editingPackage, enabled: event.target.checked })} />启用该套餐</label>
+        <footer><button className="secondary-action" type="button" onClick={() => setEditingPackage(null)}>取消</button><button className="primary-action" type="submit">保存套餐</button></footer>
+      </form>
+    </div> : null}
+  </main>
+}
+
+export default function PlatformAdminPage() {
+  const [route, setRoute] = useState(getRoute)
+
+  useEffect(() => {
+    const handleHashChange = () => setRoute(getRoute())
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  return (
+    <section className="platform-admin-page" aria-labelledby="platform-admin-title">
+      <div className="platform-admin-layout">
+        <nav className="platform-admin-nav" aria-label="平台管理模块">
+          <div className="platform-admin-nav__head">
+            <span>平台功能</span>
+            <small>6 个一级模块</small>
+          </div>
+          {areas.map((area) => {
+            const AreaIcon = area.icon
+            const isActive = route.area.id === area.id
+            return (
+              <section key={area.id} className={isActive ? 'platform-admin-nav__group active' : 'platform-admin-nav__group'}>
+                <button type="button" className="platform-admin-nav__area" aria-current={isActive ? 'page' : undefined} onClick={() => routeTo(area.id, area.pages[0].id)}>
+                  <AreaIcon aria-hidden="true" />
+                  <span>{area.title}</span>
+                  <ChevronRight aria-hidden="true" />
+                </button>
+                {isActive ? (
+                  <div className="platform-admin-nav__children">
+                    {area.pages.map((page) => (
+                      <button key={page.id} type="button" className={route.page.id === page.id ? 'active' : ''} aria-current={route.page.id === page.id ? 'page' : undefined} onClick={() => routeTo(area.id, page.id)}>
+                        {page.title}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            )
+          })}
+        </nav>
+
+        {route.page.id === 'function-permissions' ? <FunctionPermissionsPage /> : null}
+        {route.page.id === 'merchant-teams' ? <TeamManagementPage /> : null}
+        {route.page.id === 'platform-roles' ? <PlatformRolesPage /> : null}
+        {route.page.id === 'billing-rules' ? <BillingRulesPage /> : null}
+        {route.page.id === 'billing-packages' ? <BillingPackagesPage /> : null}
+        {route.page.id !== 'function-permissions' && route.page.id !== 'merchant-teams' && route.page.id !== 'platform-roles' && route.page.id !== 'billing-rules' && route.page.id !== 'billing-packages' ? <main className="platform-admin-empty-workspace" id="main-content" tabIndex={-1} aria-labelledby="platform-admin-title"><h1 id="platform-admin-title" className="sr-only">平台管理工作区</h1></main> : null}
+      </div>
+    </section>
+  )
+}
