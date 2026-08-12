@@ -50,6 +50,7 @@ interface PermissionFunction {
   order?: number
   enabled: boolean
   pages: PermissionPage[]
+  buttons?: PermissionButton[]
 }
 
 interface PermissionPage {
@@ -108,8 +109,15 @@ const initialModules: ModuleItem[] = [
     { id: 'knowledge', name: '知识配置', path: '/xiaowan/knowledge', code: 'knowledge', enabled: true, pages: [{ id: 'knowledge-base', name: '知识库', path: '/xiaowan/knowledge', code: 'knowledge-base', enabled: true, buttons: [{ id: 'create-knowledge', name: '新增知识库', code: 'create-knowledge', enabled: true }, { id: 'publish-knowledge', name: '发布知识库', code: 'publish-knowledge', enabled: true }] }] },
   ] },
   { id: 'ecom-image', name: '电商生图', path: '/ecom-image', code: 'ecom-image', order: 2, enabled: true, functions: [
-    { id: 'task-production', name: '任务生产', path: '/ecom-image/tasks', code: 'task-production', enabled: true, pages: [{ id: 'task-list', name: '任务管理', path: '/ecom-image/tasks', code: 'task-list', enabled: true, buttons: [{ id: 'create-task', name: '新建任务', code: 'create-task', enabled: true }, { id: 'stop-task', name: '终止任务', code: 'stop-task', enabled: true }] }] },
-    { id: 'asset-configuration', name: '资源配置', path: '/ecom-image/assets', code: 'asset-configuration', enabled: true, pages: [{ id: 'generation-assets', name: '生图资产', path: '/ecom-image/assets', code: 'generation-assets', enabled: true, buttons: [{ id: 'add-asset', name: '新增资产', code: 'add-asset', enabled: true }, { id: 'publish-asset', name: '发布资产', code: 'publish-asset', enabled: true }] }] },
+    { id: 'task-production', name: '任务生产', path: '', code: 'task-production', resourceType: 'button', order: 1, enabled: true, pages: [
+      { id: 'task-list', name: '任务管理', path: '/ecom-image/tasks', code: 'task-list', order: 1, enabled: true, buttons: [{ id: 'create-task', name: '新建任务', code: 'create-task', order: 1, enabled: true }, { id: 'stop-task', name: '终止任务', code: 'stop-task', order: 2, enabled: true }, { id: 'batch-export-task', name: '批量导出', code: 'batch-export-task', order: 3, enabled: true }] },
+      { id: 'task-review', name: '任务审核', path: '/ecom-image/tasks/review', code: 'task-review', order: 2, enabled: true, buttons: [{ id: 'approve-task', name: '审核通过', code: 'approve-task', order: 1, enabled: true }, { id: 'reject-task', name: '驳回任务', code: 'reject-task', order: 2, enabled: true }] },
+    ] },
+    { id: 'asset-configuration', name: '资源配置', path: '', code: 'asset-configuration', resourceType: 'button', order: 2, enabled: true, pages: [
+      { id: 'generation-assets', name: '生图资产', path: '/ecom-image/assets', code: 'generation-assets', order: 1, enabled: true, buttons: [{ id: 'add-asset', name: '新增资产', code: 'add-asset', order: 1, enabled: true }, { id: 'publish-asset', name: '发布资产', code: 'publish-asset', order: 2, enabled: true }] },
+      { id: 'style-template', name: '风格模板', path: '/ecom-image/templates', code: 'style-template', order: 2, enabled: true, buttons: [{ id: 'create-template', name: '新建模板', code: 'create-template', order: 1, enabled: true }, { id: 'disable-template', name: '停用模板', code: 'disable-template', order: 2, enabled: true }] },
+    ] },
+    { id: 'production-dashboard', name: '生产看板', path: '/ecom-image/dashboard', code: 'production-dashboard', resourceType: 'page', order: 3, enabled: true, pages: [], buttons: [{ id: 'view-production-dashboard', name: '查看看板', code: 'view-production-dashboard', order: 1, enabled: true }, { id: 'export-production-dashboard', name: '导出数据', code: 'export-production-dashboard', order: 2, enabled: true }] },
   ] },
   { id: 'strategy', name: '经营策略引擎', path: '/strategy', code: 'strategy', order: 3, enabled: true, functions: [
     { id: 'business-dashboard', name: '经营分析', path: '/strategy/dashboard', code: 'business-dashboard', enabled: true, pages: [{ id: 'dashboard', name: '经营看板', path: '/strategy/dashboard', code: 'dashboard', enabled: true, buttons: [{ id: 'view-dashboard', name: '查看看板', code: 'view-dashboard', enabled: true }, { id: 'export-dashboard', name: '导出看板', code: 'export-dashboard', enabled: true }] }] },
@@ -376,7 +384,7 @@ function FunctionPermissionsPage() {
 
   const functionCount = modules.reduce((total, module) => total + module.functions.length, 0)
   const pageCount = modules.reduce((total, module) => total + module.functions.reduce((sum, feature) => sum + feature.pages.length, 0), 0)
-  const buttonCount = modules.reduce((total, module) => total + module.functions.reduce((sum, feature) => sum + feature.pages.reduce((count, page) => count + page.buttons.length, 0), 0), 0)
+  const buttonCount = modules.reduce((total, module) => total + module.functions.reduce((sum, feature) => sum + (feature.buttons?.length ?? 0) + feature.pages.reduce((count, page) => count + page.buttons.length, 0), 0), 0)
 
   const levelLabel = (level: PermissionResourceLevel) => ({ module: '模块', function: '功能', page: '页面', button: '按钮' })[level]
 
@@ -390,7 +398,7 @@ function FunctionPermissionsPage() {
         ? module?.functions ?? []
         : level === 'page'
           ? feature?.pages ?? []
-          : page?.buttons ?? []
+          : page?.buttons ?? feature?.buttons ?? []
     const nextOrder = Math.max(0, ...siblings.map((item) => item.order ?? 0)) + 1
     setEditor({ mode: 'create', level, ...parent, name: '', code: '', path: '', resourceType: 'page', order: nextOrder, enabled: true, description: '', showInNavigation: true, icon: '', component: '', hidden: false, cache: false, actionType: '新增', permissionPoint: '', apiPath: '', httpMethod: 'POST' })
   }
@@ -406,7 +414,7 @@ function FunctionPermissionsPage() {
     const feature = module?.functions.find((item) => item.id === resource.functionId)
     if (resource.level === 'page') return feature?.name ?? '—'
     const page = feature?.pages.find((item) => item.id === resource.pageId)
-    return page?.name ?? '—'
+    return page?.name ?? feature?.name ?? '—'
   }
 
   const saveResource = (event: FormEvent<HTMLFormElement>) => {
@@ -423,7 +431,7 @@ function FunctionPermissionsPage() {
       return current.map((module) => {
         if (module.id !== resource.moduleId) return module
         if (resource.level === 'function') {
-          if (resource.mode === 'create') return { ...module, functions: [...module.functions, { id: resourceId, name: resource.name, path: resource.resourceType === 'page' ? resource.path || `/${resource.code}` : '', code: resource.code, resourceType: resource.resourceType, order: resource.order, enabled: resource.enabled, pages: [] }] }
+          if (resource.mode === 'create') return { ...module, functions: [...module.functions, { id: resourceId, name: resource.name, path: resource.resourceType === 'page' ? resource.path || `/${resource.code}` : '', code: resource.code, resourceType: resource.resourceType, order: resource.order, enabled: resource.enabled, pages: [], buttons: resource.resourceType === 'page' ? [] : undefined }] }
           return { ...module, functions: module.functions.map((feature) => feature.id === resource.functionId ? { ...feature, name: resource.name, code: resource.code, path: resource.path || feature.path, order: resource.order, enabled: resource.enabled } : feature) }
         }
         return {
@@ -433,6 +441,10 @@ function FunctionPermissionsPage() {
             if (resource.level === 'page') {
               if (resource.mode === 'create') return { ...feature, pages: [...feature.pages, { id: resourceId, name: resource.name, path: resource.path || `/${resource.code}`, code: resource.code, order: resource.order, enabled: resource.enabled, buttons: [] }] }
               return { ...feature, pages: feature.pages.map((page) => page.id === resource.pageId ? { ...page, name: resource.name, code: resource.code, path: resource.path || page.path, order: resource.order, enabled: resource.enabled } : page) }
+            }
+            if (!resource.pageId) {
+              if (resource.mode === 'create') return { ...feature, buttons: [...(feature.buttons ?? []), { id: resourceId, name: resource.name, code: resource.code, order: resource.order, enabled: resource.enabled, ...buttonConfig }] }
+              return { ...feature, buttons: (feature.buttons ?? []).map((button) => button.id === resource.buttonId ? { ...button, name: resource.name, code: resource.code, order: resource.order, enabled: resource.enabled, ...buttonConfig } : button) }
             }
             return {
               ...feature,
@@ -494,16 +506,26 @@ function FunctionPermissionsPage() {
               {isExpanded ? <div className="permission-resource-children permission-resource-children--function">
                 {[...item.functions].sort((left, right) => (left.order ?? 0) - (right.order ?? 0)).map((feature, featureIndex) => {
                   const functionKey = `function:${item.id}:${feature.id}`
-                  const isFunctionOpen = expandedKeys.has(functionKey)
+                  const isExpandableFunction = feature.resourceType !== 'page'
+                  const isFunctionOpen = isExpandableFunction && expandedKeys.has(functionKey)
                   return <section key={feature.id} className="permission-resource-node">
                     <div className="permission-resource-row permission-resource-row--function">
-                      <button className="permission-resource-row__toggle" type="button" aria-label={`${isFunctionOpen ? '收起' : '展开'}${feature.name}`} aria-expanded={isFunctionOpen} onClick={() => toggleExpanded(functionKey)}><ChevronRight aria-hidden="true" /></button>
+                      {isExpandableFunction ? <button className="permission-resource-row__toggle" type="button" aria-label={`${isFunctionOpen ? '收起' : '展开'}${feature.name}`} aria-expanded={isFunctionOpen} onClick={() => toggleExpanded(functionKey)}><ChevronRight aria-hidden="true" /></button> : <span className="permission-resource-row__toggle-spacer" />}
                       <span className="permission-level permission-level--function">功能</span>
                       <strong>{feature.name}</strong>{feature.resourceType ? <span className="permission-resource-type">{feature.resourceType === 'page' ? '页面' : '按钮'}</span> : null}{feature.path ? <span className="permission-resource-row__path">{feature.path}</span> : null}<code>{feature.code}</code><small>序 {feature.order ?? featureIndex + 1}</small>
                       <span className={feature.enabled ? 'module-status' : 'module-status is-disabled'}>{feature.enabled ? '启用' : '停用'}</span>
-                      <div className="permission-resource-row__actions"><button type="button" aria-label={`编辑${feature.name}`} title="编辑功能" onClick={() => openEdit('function', { moduleId: item.id, functionId: feature.id, name: feature.name, code: feature.code, path: feature.path, order: feature.order ?? featureIndex + 1, enabled: feature.enabled })}><Pencil aria-hidden="true" /></button>{feature.resourceType !== 'button' ? <button className="permission-resource-row__add" type="button" onClick={() => { ensureExpanded(functionKey); openCreate('page', { moduleId: item.id, functionId: feature.id }) }}><Plus aria-hidden="true" />新增页面</button> : null}</div>
+                      <div className="permission-resource-row__actions"><button type="button" aria-label={`编辑${feature.name}`} title="编辑功能" onClick={() => openEdit('function', { moduleId: item.id, functionId: feature.id, name: feature.name, code: feature.code, path: feature.path, order: feature.order ?? featureIndex + 1, enabled: feature.enabled })}><Pencil aria-hidden="true" /></button>{feature.resourceType === 'page' ? <button className="permission-resource-row__add" type="button" onClick={() => openCreate('button', { moduleId: item.id, functionId: feature.id })}><Plus aria-hidden="true" />新增按钮</button> : isExpandableFunction ? <button className="permission-resource-row__add" type="button" onClick={() => { ensureExpanded(functionKey); openCreate('page', { moduleId: item.id, functionId: feature.id }) }}><Plus aria-hidden="true" />新增页面</button> : null}</div>
                     </div>
-                    {isFunctionOpen ? <div className="permission-resource-children permission-resource-children--page">
+                    {feature.resourceType === 'page' ? <div className="permission-resource-children permission-resource-children--button">
+                      {[...(feature.buttons ?? [])].sort((left, right) => (left.order ?? 0) - (right.order ?? 0)).map((button, buttonIndex) => <div key={button.id} className="permission-resource-row permission-resource-row--button">
+                        <span className="permission-resource-row__toggle-spacer" />
+                        <span className="permission-level permission-level--button">按钮</span>
+                        <strong>{button.name}</strong><code>{button.code}</code><small>序 {button.order ?? buttonIndex + 1}</small>
+                        <span className={button.enabled ? 'module-status' : 'module-status is-disabled'}>{button.enabled ? '启用' : '停用'}</span>
+                        <div className="permission-resource-row__actions"><button type="button" aria-label={`编辑${button.name}`} title="编辑按钮" onClick={() => openEdit('button', { moduleId: item.id, functionId: feature.id, buttonId: button.id, name: button.name, code: button.code, path: '', order: button.order ?? buttonIndex + 1, enabled: button.enabled, description: button.description, actionType: button.actionType, permissionPoint: button.permissionPoint, apiPath: button.apiPath, httpMethod: button.httpMethod })}><Pencil aria-hidden="true" /></button></div>
+                      </div>)}
+                    </div> : null}
+                    {isExpandableFunction && isFunctionOpen ? <div className="permission-resource-children permission-resource-children--page">
                       {[...feature.pages].sort((left, right) => (left.order ?? 0) - (right.order ?? 0)).map((page, pageIndex) => {
                         const pageKey = `page:${item.id}:${feature.id}:${page.id}`
                         const isPageOpen = expandedKeys.has(pageKey)
