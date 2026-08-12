@@ -202,13 +202,39 @@ const initialPlatformRoles: PlatformRole[] = [
   { id: 'content-maker', name: '内容生产员', teamIds: ['team-1'], memberCount: 2, status: 'disabled', pageIds: ['chat-workbench', 'image-tasks', 'image-assets'] },
 ]
 
-const managerPermissionModules = [
-  { id: 'manager-team', label: '团队管理', pages: [{ id: 'manager-team-list', label: '团队列表' }, { id: 'manager-team-members', label: '成员管理' }, { id: 'manager-team-groups', label: '小组管理' }, { id: 'manager-team-platforms', label: '平台管理' }] },
-  { id: 'manager-overview', label: '数据概览', pages: [{ id: 'manager-overview-dashboard', label: '经营数据概览' }, { id: 'manager-overview-center', label: '数据中心' }, { id: 'manager-overview-report', label: '日报概览' }] },
-  { id: 'manager-tasks', label: '任务管理', pages: [{ id: 'manager-tasks-list', label: '任务列表' }, { id: 'manager-tasks-review', label: '任务审核' }, { id: 'manager-tasks-log', label: '任务日志' }] },
+interface ManagerPermissionNode {
+  id: string
+  label: string
+  children?: ManagerPermissionNode[]
+}
+
+interface ManagerPermissionModule {
+  id: string
+  label: string
+  children: ManagerPermissionNode[]
+}
+
+const managerPermissionModules: ManagerPermissionModule[] = [
+  { id: 'manager-overview', label: '数据概览', children: [{ id: 'manager-overview-dashboard', label: '数据概览' }] },
+  { id: 'manager-team', label: '团队管理', children: [
+    { id: 'manager-team-members', label: '成员管理', children: [{ id: 'manager-team-members-create', label: '新增成员' }, { id: 'manager-team-members-delete', label: '删除成员' }, { id: 'manager-team-members-edit', label: '编辑成员' }, { id: 'manager-team-members-view', label: '查看成员' }, { id: 'manager-team-members-disable', label: '禁用成员' }, { id: 'manager-team-members-peas', label: '豌豆分配' }] },
+    { id: 'manager-team-groups', label: '小组管理', children: [
+      { id: 'manager-team-groups-manage', label: '小组', children: [{ id: 'manager-team-groups-manage-crud', label: '增删改查' }, { id: 'manager-team-groups-manage-peas', label: '豌豆分配' }] },
+      { id: 'manager-team-group-members', label: '小组成员', children: [{ id: 'manager-team-group-members-crud', label: '增删改查' }, { id: 'manager-team-group-members-peas', label: '豌豆分配' }] },
+    ] },
+    { id: 'manager-team-platforms', label: '平台管理', children: [{ id: 'manager-team-platforms-crud', label: '平台增删改查' }, { id: 'manager-team-platforms-shop-binding', label: '店铺绑定' }] },
+    { id: 'manager-team-permissions', label: '权限管理', children: [{ id: 'manager-team-permissions-organization', label: '组织权限' }, { id: 'manager-team-permissions-business', label: '业务权限' }] },
+    { id: 'manager-team-operation-log', label: '操作日志' },
+  ] },
+  { id: 'manager-tasks', label: '任务管理', children: [{ id: 'manager-tasks-ecom-image', label: '电商生图', children: [{ id: 'manager-tasks-ecom-image-pea-records', label: '豌豆值消耗记录' }] }, { id: 'manager-tasks-business-engine', label: '商智引擎' }] },
+  { id: 'manager-resources', label: '资源管理', children: [{ id: 'manager-resources-ecom-image', label: '电商生图', children: [{ id: 'manager-resources-ecom-image-inspiration', label: '灵感中心' }, { id: 'manager-resources-ecom-image-coze-suite', label: 'Coze 模版套装' }, { id: 'manager-resources-ecom-image-prompt-template', label: '提示词模版' }, { id: 'manager-resources-ecom-image-pose-preset', label: '姿势库预设' }, { id: 'manager-resources-ecom-image-logo', label: 'Logo 管理' }] }, { id: 'manager-resources-business-engine', label: '商智引擎' }] },
 ]
 
-const allManagerPermissionIds = managerPermissionModules.flatMap((module) => module.pages.map((page) => page.id))
+function getManagerPermissionLeafIds(nodes: ManagerPermissionNode[]): string[] {
+  return nodes.flatMap((node) => node.children?.length ? getManagerPermissionLeafIds(node.children) : [node.id])
+}
+
+const allManagerPermissionIds = managerPermissionModules.flatMap((module) => getManagerPermissionLeafIds(module.children))
 
 const initialOrganizationRoles: OrganizationRoleTemplate[] = [
   { id: 'merchant-manager', name: '商户管理员', description: '负责商户团队整体管理，默认拥有 Manager 端全部权限。', managerPermissionIds: allManagerPermissionIds },
@@ -291,11 +317,10 @@ const areas: Area[] = [
   {
     id: 'permissions',
     title: '权限管理',
-    description: '维护平台权限目录、管理账号与平台角色，不包含商户内部业务角色。',
+    description: '维护平台权限目录与平台角色，不包含商户内部业务角色。',
     icon: ShieldCheck,
     pages: [
       { id: 'function-permissions', title: '功能权限', description: '以模块、功能、页面、按钮四级资源树维护平台权限点。' },
-      { id: 'administrators', title: '管理员管理', description: '管理超管、系统管理员及其账号状态。' },
       { id: 'platform-roles', title: '角色管理', description: '配置平台角色可获得的权限点集合。' },
     ],
   },
@@ -704,25 +729,25 @@ function UserManagementPage() {
   </main>
 }
 
+function ManagerPermissionTreeNode({ node, selectedIds, onToggle, depth = 0 }: { node: ManagerPermissionNode; selectedIds: Set<string>; onToggle: (permissionIds: string[]) => void; depth?: number }) {
+  const permissionIds = getManagerPermissionLeafIds([node])
+  const isChecked = permissionIds.every((id) => selectedIds.has(id))
+  const isPartial = !isChecked && permissionIds.some((id) => selectedIds.has(id))
+
+  return <div className={`manager-role-dialog__node${depth === 0 ? ' manager-role-dialog__node--module' : ''}`}>
+    <label><input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => onToggle(permissionIds)} />{node.label}</label>
+    {node.children?.length ? <div className="manager-role-dialog__children">{node.children.map((child) => <ManagerPermissionTreeNode key={child.id} node={child} selectedIds={selectedIds} onToggle={onToggle} depth={depth + 1} />)}</div> : null}
+  </div>
+}
+
 function OrganizationRolePermissionDialog({ role, onClose, onSave }: { role: OrganizationRoleTemplate; onClose: () => void; onSave: (permissionIds: string[]) => void }) {
   const [selectedIds, setSelectedIds] = useState(() => new Set(role.managerPermissionIds))
 
-  const toggleModule = (moduleId: string) => {
-    const module = managerPermissionModules.find((item) => item.id === moduleId)
-    if (!module) return
-    const pageIds = module.pages.map((page) => page.id)
+  const togglePermissions = (permissionIds: string[]) => {
     setSelectedIds((current) => {
       const next = new Set(current)
-      const isSelected = pageIds.every((id) => next.has(id))
-      pageIds.forEach((id) => isSelected ? next.delete(id) : next.add(id))
-      return next
-    })
-  }
-
-  const togglePage = (pageId: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current)
-      next.has(pageId) ? next.delete(pageId) : next.add(pageId)
+      const isSelected = permissionIds.every((id) => next.has(id))
+      permissionIds.forEach((id) => isSelected ? next.delete(id) : next.add(id))
       return next
     })
   }
@@ -730,13 +755,8 @@ function OrganizationRolePermissionDialog({ role, onClose, onSave }: { role: Org
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <form className="ledger-dialog platform-role-dialog manager-role-dialog" onSubmit={(event) => { event.preventDefault(); onSave([...selectedIds]) }}>
       <header><div><span className="eyebrow">manager_role</span><h3>编辑{role.name}权限</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={onClose}>×</button></header>
-      <p className="manager-role-dialog__hint">配置 Manager 端可访问的模块和页面。小组长默认仅通过登录校验，权限由此处按需开放。</p>
-      <fieldset className="dialog-field platform-role-dialog__field"><legend>Manager 端后台权限</legend><div className="manager-role-dialog__permissions">{managerPermissionModules.map((module) => {
-        const pageIds = module.pages.map((page) => page.id)
-        const isChecked = pageIds.every((id) => selectedIds.has(id))
-        const isPartial = !isChecked && pageIds.some((id) => selectedIds.has(id))
-        return <section key={module.id}><label className="manager-role-dialog__module"><input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => toggleModule(module.id)} />{module.label}</label><div>{module.pages.map((page) => <label key={page.id}><input type="checkbox" checked={selectedIds.has(page.id)} onChange={() => togglePage(page.id)} />{page.label}</label>)}</div></section>
-      })}</div></fieldset>
+      <p className="manager-role-dialog__hint">配置 Manager 端模块、页面与操作权限。勾选父级可批量选择下属权限点，小组长默认仅通过登录校验，权限由此处按需开放。</p>
+      <fieldset className="dialog-field platform-role-dialog__field"><legend>Manager 端后台权限</legend><div className="manager-role-dialog__permissions">{managerPermissionModules.map((module) => <ManagerPermissionTreeNode key={module.id} node={module} selectedIds={selectedIds} onToggle={togglePermissions} />)}</div></fieldset>
       <footer><button className="secondary-action" type="button" onClick={onClose}>取消</button><button className="primary-action" type="submit">保存权限</button></footer>
     </form>
   </div>
@@ -779,7 +799,7 @@ function PlatformRolesPage() {
     {roleTab === 'organization' ? <section className="platform-organization-role-table" aria-label="组织角色列表">
       <div className="platform-organization-role-table__head" role="row"><span role="columnheader">组织角色</span><span role="columnheader">角色说明</span><span role="columnheader">Manager 端默认权限</span><span role="columnheader">操作</span></div>
       {organizationRoles.map((role) => <article className="platform-organization-role-table__row" key={role.id} role="row">
-        <strong role="cell">{role.name}</strong><span role="cell">{role.description}</span><span role="cell" className={role.managerPermissionIds.length ? 'platform-organization-role-table__scope' : 'platform-organization-role-table__scope is-empty'}>{role.id === 'member' ? '固定无权限' : role.managerPermissionIds.length === allManagerPermissionIds.length ? 'Manager 端全部模块和页面' : `${role.managerPermissionIds.length} 个页面`}</span><div role="cell"><button type="button" disabled={role.id === 'member'} title={role.id === 'member' ? '组员角色不参与权限分配' : '编辑 Manager 端权限'} onClick={() => setEditingOrganizationRole({ ...role, managerPermissionIds: [...role.managerPermissionIds] })}><Pencil aria-hidden="true" />权限编辑</button></div>
+        <strong role="cell">{role.name}</strong><span role="cell">{role.description}</span><span role="cell" className={role.managerPermissionIds.length ? 'platform-organization-role-table__scope' : 'platform-organization-role-table__scope is-empty'}>{role.id === 'member' ? '固定无权限' : role.managerPermissionIds.length === allManagerPermissionIds.length ? 'Manager 端全部权限' : `${role.managerPermissionIds.length} 个权限点`}</span><div role="cell"><button type="button" disabled={role.id === 'member'} title={role.id === 'member' ? '组员角色不参与权限分配' : '编辑 Manager 端权限'} onClick={() => setEditingOrganizationRole({ ...role, managerPermissionIds: [...role.managerPermissionIds] })}><Pencil aria-hidden="true" />权限编辑</button></div>
       </article>)}
     </section> : <>
       <div className="platform-role-business-toolbar"><p>生产端的角色默认权限；商户管理员分配时可在团队、小组已开通模块内调整。</p><button className="module-management-page__create" type="button" onClick={() => setEditingBusinessRole({ id: '', name: '', teamIds: [], memberCount: 0, status: 'enabled', pageIds: [] })}><Plus aria-hidden="true" />新增角色</button></div>

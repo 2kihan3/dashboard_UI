@@ -41,6 +41,7 @@ interface DailyTaskRecord {
   metrics: { gmv: number; platformFee: number; managementFee: number }
   reviewedFields?: Record<string, number>
   reviewNote?: string
+  manualEditCount?: number
   peaCost: number // 豌豆消耗
   owner: string // 任务归属人员
   reviewer: string // 审核人
@@ -156,6 +157,9 @@ const taskRows: DailyTaskRecord[] = [
     taskLog: '08:11 拉取爱库存费用数据；品牌推广费为空，等待人工复核。',
     isUnbound: false,
     metrics: { gmv: 5519.9, platformFee: 573.06, managementFee: 0 },
+    reviewedFields: { '平台成交GMV': 5500 },
+    reviewNote: '已按人工复核结果修正 GMV。',
+    manualEditCount: 1,
     peaCost: 280,
     owner: '陈分析',
     reviewer: '',
@@ -213,6 +217,9 @@ const taskRows: DailyTaskRecord[] = [
     taskLog: '08:30 拉取好衣库日报；08:31 完成字段校验；08:30:15 任务结束。',
     isUnbound: false,
     metrics: { gmv: 13680.5, platformFee: 1820.3, managementFee: 0 },
+    reviewedFields: { '平台成交GMV': 13700 },
+    reviewNote: '已完成两次人工修正。',
+    manualEditCount: 2,
     peaCost: 360,
     owner: '张管理员',
     reviewer: '王财务',
@@ -483,8 +490,10 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
 
   // 报告统计
   const totalTaskCount = tasks.length
+  const unpublishedCount = tasks.filter((task) => task.reportStatus === '待发布' || task.reportStatus === '未发布').length
   const failureCount = tasks.filter((task) => task.taskResult === '失败').length
   const manualUploadCount = tasks.filter((task) => task.source === '人工上传文件' || task.source === '人工上传').length
+  const manualEditCount = tasks.reduce((sum, task) => sum + (task.manualEditCount ?? 0), 0)
   const totalPeaCost = tasks.reduce((sum, t) => sum + t.peaCost, 0)
   const visibleTasks = tasks
     .filter((task) => (taskPlatform === '全部' || task.platform === taskPlatform) && (taskStore === '全部' || task.store === taskStore))
@@ -555,10 +564,11 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
     if (!task) return
     const originalFields = taskFieldValues(task)
     const modifiedFields = Object.fromEntries(Object.entries(reviewFields).filter(([field, value]) => value !== originalFields[field]))
+    const hasManualChanges = Object.keys(modifiedFields).length > 0
     setTasks((rows) =>
       rows.map((row) =>
         row.taskId === reviewingTaskId
-          ? { ...row, reviewedFields: modifiedFields, reviewNote: reviewNote.trim() || '人工复核完成' }
+          ? { ...row, reviewedFields: modifiedFields, reviewNote: reviewNote.trim() || '人工复核完成', manualEditCount: (row.manualEditCount ?? 0) + (hasManualChanges ? 1 : 0) }
           : row,
       ),
     )
@@ -767,6 +777,20 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
           </div>
         </article>
         <article className="report-stat-card">
+          <span className="report-stat-card__icon report-stat-card__icon--success"><Upload aria-hidden="true" /></span>
+          <div>
+            <strong>{manualUploadCount}</strong>
+            <span>人工上传次数</span>
+          </div>
+        </article>
+        <article className="report-stat-card">
+          <span className="report-stat-card__icon report-stat-card__icon--warning"><ScrollText aria-hidden="true" /></span>
+          <div>
+            <strong>{unpublishedCount}</strong>
+            <span>未发布条数</span>
+          </div>
+        </article>
+        <article className="report-stat-card">
           <span className="report-stat-card__icon report-stat-card__icon--danger"><AlertTriangle aria-hidden="true" /></span>
           <div>
             <strong>{failureCount}</strong>
@@ -774,10 +798,10 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
           </div>
         </article>
         <article className="report-stat-card">
-          <span className="report-stat-card__icon report-stat-card__icon--success"><Upload aria-hidden="true" /></span>
+          <span className="report-stat-card__icon"><Pencil aria-hidden="true" /></span>
           <div>
-            <strong>{manualUploadCount}</strong>
-            <span>人工上传次数</span>
+            <strong>{manualEditCount}</strong>
+            <span>手动修改次数</span>
           </div>
         </article>
         <article className="report-stat-card">
