@@ -163,14 +163,11 @@ export function rowPeriodValue(row: ReportRow, period: Period, indexes: number[]
 }
 
 export function fieldPeriodValue(platform: PlatformName, field: string, period: Period, indexes: number[]) {
-  // 当前接入源尚未提供可用于看板聚合的管理费用字段，按 PRD 统一以 0 展示。
-  if (field === '管理费用合计') return 0
   return collectRows(platform, (row) => row.field === field).reduce((sum, item) => sum + rowPeriodValue(item.row, period, indexes), 0)
 }
 
 export function fieldSummaryValue(platform: PlatformName, field: string, period: Period) {
   // 统一基于 periodBuckets 计算，指标卡与图表口径完全一致
-  if (field === '管理费用合计') return 0
   const rows = collectRows(platform, (row) => row.field === field)
   const allIndexes = periodBuckets(period).flatMap((bucket) => bucket.indexes)
   return rows.reduce((sum, item) => sum + allIndexes.reduce((subtotal, index) => subtotal + (item.row.daily[index]?.value ?? 0), 0), 0)
@@ -202,6 +199,10 @@ export function storeFieldDetailSeries(platform: DetailPlatform, field: string, 
 
 export function platformFeeFields(platform: PlatformName) {
   return Array.from(new Set(collectRows(platform, (row) => row.category === '平台费用' && !row.isTotal).map((item) => item.row.field)))
+}
+
+export function managementFeeFields(platform: PlatformName) {
+  return Array.from(new Set(collectRows(platform, (row) => row.category === '管理费用' && !row.isTotal).map((item) => item.row.field)))
 }
 
 export function feeColor(field: string) {

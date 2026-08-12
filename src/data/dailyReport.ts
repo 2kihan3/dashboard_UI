@@ -25651,6 +25651,59 @@ function generateVirtualDaily(
   })
 }
 
+const managementFeeProfiles: Partial<Record<Exclude<PlatformName, '总计'>, Array<{ field: string; base: number; wave: number }>>> = {
+  快手: [
+    { field: '运营人力费用', base: 1820, wave: 150 },
+    { field: '系统服务费', base: 710, wave: 80 },
+    { field: '办公与行政费用', base: 460, wave: 55 },
+  ],
+  爱库存: [
+    { field: '运营人力费用', base: 1380, wave: 120 },
+    { field: '系统服务费', base: 620, wave: 75 },
+    { field: '办公与行政费用', base: 390, wave: 45 },
+  ],
+}
+
+function addVirtualManagementFeeRows(reports: PlatformReport[]): PlatformReport[] {
+  return reports.map((report) => {
+    const profile = managementFeeProfiles[report.platform]
+    if (!profile) return report
+
+    const detailRows: ReportRow[] = profile.map((item, profileIndex) => {
+      const daily = report.dates.map((date, index) => {
+        const cycle = ((index * (profileIndex + 2)) % 7) - 3
+        const value = Math.round((item.base + cycle * item.wave / 3) * 100) / 100
+        return { ...date, value }
+      })
+      const total = daily.reduce((sum, item) => sum + item.value, 0)
+      return {
+        category: '管理费用',
+        field: item.field,
+        isTotal: false,
+        valueType: 'amount',
+        yearTotal: total,
+        monthTotal: total,
+        daily,
+      }
+    })
+    const totalDaily = report.dates.map((date, index) => ({
+      ...date,
+      value: detailRows.reduce((sum, row) => sum + row.daily[index].value, 0),
+    }))
+    const total = totalDaily.reduce((sum, item) => sum + item.value, 0)
+    const totalRow: ReportRow = {
+      category: '管理费用',
+      field: '管理费用合计',
+      isTotal: true,
+      valueType: 'amount',
+      yearTotal: total,
+      monthTotal: total,
+      daily: totalDaily,
+    }
+    return { ...report, rows: [...report.rows.filter((row) => row.category !== '管理费用'), ...detailRows, totalRow] }
+  })
+}
+
 function extendAllReports(reports: PlatformReport[]): PlatformReport[] {
   // 7/1 ~ 7/22，共 22 天虚拟数据（今天 7/23，数据到昨天）
   const virtualDates = generateVirtualDates('2026-07-01', '2026-07-22', 32)
@@ -25681,4 +25734,23 @@ function extendAllReports(reports: PlatformReport[]): PlatformReport[] {
   })
 }
 
-export const reportDataWithHaoyiku: PlatformReport[] = extendAllReports(_rawReportDataWithHaoyiku)
+function reconcileManagementFeeTotals(reports: PlatformReport[]): PlatformReport[] {
+  return reports.map((report) => {
+    const detailRows = report.rows.filter((row) => row.category === '管理费用' && !row.isTotal)
+    const totalRow = report.rows.find((row) => row.field === '管理费用合计' && row.isTotal)
+    if (!detailRows.length || !totalRow) return report
+
+    const daily = report.dates.map((date, index) => ({
+      ...date,
+      value: detailRows.reduce((sum, row) => sum + (row.daily[index]?.value ?? 0), 0),
+    }))
+    const yearTotal = daily.reduce((sum, item) => sum + item.value, 0)
+    const monthTotal = daily.filter((item) => item.date.startsWith('2026-07')).reduce((sum, item) => sum + item.value, 0)
+    return {
+      ...report,
+      rows: report.rows.map((row) => row === totalRow ? { ...row, daily, yearTotal, monthTotal } : row),
+    }
+  })
+}
+
+export const reportDataWithHaoyiku: PlatformReport[] = reconcileManagementFeeTotals(extendAllReports(addVirtualManagementFeeRows(_rawReportDataWithHaoyiku)))

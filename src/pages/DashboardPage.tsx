@@ -65,6 +65,7 @@ function DailyGmvCard({ platform, store }: { platform: Exclude<PlatformName, '�
 }
 
 function DailyGmvChart({ platform, store }: { platform: PlatformName; store?: string }) {
+  const totalValue = fieldSummaryValue(platform, '平台成交GMV', 'day') * selectedStoreShare(platform, store)
   const dailyPlatforms: Exclude<PlatformName, '总计'>[] = platform === '总计'
     ? reportData.map((item) => item.platform)
     : [platform]
@@ -74,7 +75,7 @@ function DailyGmvChart({ platform, store }: { platform: PlatformName; store?: st
     return storeShares[item].map((itemStore) => ({ platform: item, store: itemStore.name }))
   })
   return (
-    <ChartShell title="GMV" subtitle={platform === '总计' ? '最近业务日 · 每个平台' : store ? '最近业务日 · 单店铺' : '最近业务日 · 每个店铺'}>
+    <ChartShell title="GMV" subtitle={platform === '总计' ? '最近业务日 · 每个平台' : store ? '最近业务日 · 单店铺' : '最近业务日 · 每个店铺'} summary={{ label: '当日汇总', value: formatPrecise(totalValue) }}>
       <div className="daily-gmv-grid">{cards.map((item) => <DailyGmvCard key={`${item.platform}-${item.store ?? 'total'}`} platform={item.platform} store={item.store} />)}</div>
       <p className="global-chart-note">日维度下：总计展示每个平台，平台展示每个店铺，选定店铺后仅展示该店铺的 GMV。</p>
     </ChartShell>
@@ -120,12 +121,11 @@ function GlobalDashboard({ period, platform, store, onPeriodChange, onPlatformCh
     <>
       <section className="data-scope-note global-dashboard-head" data-prd-anchor="dashboard-global-scope">
         <div className="global-dashboard-title"><div><h2>全局经营看板</h2><span className="global-dashboard-title__notice">当前展示已接入的平台经营数据。</span></div><span className="global-dashboard-title__context">{platform} · {periodText}</span></div>
-        <div className="global-dashboard-head__actions"><button className="secondary-action" type="button" onClick={() => setExpectedStatsOpen(true)}>全量数据看板预览</button><p>按日期、平台和店铺筛选后，指标卡与统计图将同步取数。</p></div>
+        <div className="global-dashboard-head__actions"><button className="secondary-action" type="button" onClick={() => setExpectedStatsOpen(true)}>全量数据看板预览</button><p>按日期、平台和店铺筛选后，统计图标题中的汇总值与图表将同步取数。</p></div>
       </section>
       <section className="filters global-dashboard-filters" aria-label="全局看板筛选" data-prd-anchor="dashboard-global-filters"><div className="segmented">{periods.map((item) => <button className={period === item.key ? 'selected' : ''} key={item.key} type="button" onClick={() => onPeriodChange(item.key)}>{item.label}</button>)}</div><div className="global-dashboard-filters__scope"><div className="platform-tabs">{platforms.map((item) => <button className={platform === item ? 'selected' : ''} key={item} type="button" onClick={() => onPlatformChange(item)}>{item}</button>)}</div>{storeOptions.length ? <label className="store-select"><span>店铺</span><select aria-label={`${platform}店铺筛选`} value={store} onChange={(event) => onStoreChange(event.target.value)}><option value="全部店铺">全部店铺</option>{storeOptions.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label> : <span className="store-tabs__hint">选择平台后可筛选店铺</span>}</div></section>
-      <section className="metric-summary-grid" data-prd-anchor="dashboard-global-metrics">{specs.map((spec) => <MetricSummaryCard key={spec.field} platform={platform} period={period} field={spec.field} label={spec.chartTitle} sublabel={`${spec.category} · ${spec.field}`} store={store === '全部店铺' ? undefined : store} />)}</section>
       <section className="dashboard-grid" data-prd-anchor="dashboard-global-charts">{specs.map((spec) => isDailyView && spec.field === '平台成交GMV' ? <DailyGmvChart key={spec.field} platform={platform} store={store === '全部店铺' ? undefined : store} /> : <MetricChart key={spec.field} platform={platform} period={period} spec={spec} store={store === '全部店铺' ? undefined : store} />)}</section>
-      <section className="dashboard-source-note"><LineChartIcon aria-hidden="true" /><span>数据范围：{platform === '总计' ? reportData.map((item) => item.platform).join(' / ') : `${platform} · ${store}`} · 周期、平台和店铺切换会同步刷新指标卡与图表。</span></section>
+      <section className="dashboard-source-note"><LineChartIcon aria-hidden="true" /><span>数据范围：{platform === '总计' ? reportData.map((item) => item.platform).join(' / ') : `${platform} · ${store}`} · 周期、平台和店铺切换会同步刷新图表标题中的汇总值和图表。</span></section>
       <section className="dashboard-engine-hint"><BarChart3 aria-hidden="true" /><div><strong>需要更细的拆解？</strong><span>切到 chatbot 直接追问，经营引擎会基于这些数据生成归因结论。</span></div></section>
       {expectedStatsOpen ? <ExpectedGlobalStatsDialog period={period} onClose={() => setExpectedStatsOpen(false)} /> : null}
     </>

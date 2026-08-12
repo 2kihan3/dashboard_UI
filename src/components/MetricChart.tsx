@@ -12,6 +12,7 @@ import {
   fieldSummaryValue,
   formatAmount,
   formatPrecise,
+  managementFeeFields,
   periodBuckets,
   platformFeeFields,
   platformFieldBuckets,
@@ -23,19 +24,22 @@ import {
 export function ChartShell({
   title,
   subtitle,
+  summary,
   children,
 }: {
   title: string
   subtitle: string
+  summary?: { label: string; value: string }
   children: React.ReactNode
 }) {
   return (
     <section className="chart-shell">
       <header className="chart-shell__header">
-        <div>
+        <div className="chart-shell__heading">
           <span className="eyebrow">{subtitle}</span>
           <h3>{title}</h3>
         </div>
+        {summary ? <div className="chart-shell__summary"><span>{summary.label}</span><strong>{summary.value}</strong></div> : null}
       </header>
       <div className="chart-shell__body">{children}</div>
     </section>
@@ -85,12 +89,31 @@ function PlatformFeeLegend() {
   )
 }
 
+const managementFeeColors = ['#5fb7e6', '#79dbc4', '#b794f6']
+
+function DailyMetricCards({ platform, store, field, title, totalValue }: { platform: DetailPlatform; store?: string; field: string; title: string; totalValue: number }) {
+  const day = periodBuckets('day')[0]
+  const stores = store ? storeShares[platform].filter((item) => item.name === store) : storeShares[platform]
+  return (
+    <ChartShell title={title} subtitle={`${platform} · ${store ? '单店铺' : '每个店铺'}`} summary={{ label: '当日汇总', value: formatPrecise(totalValue) }}>
+      <div className="daily-gmv-grid">
+        {stores.map((item) => {
+          const value = fieldPeriodValue(platform, field, 'day', day.indexes) * item.share
+          return <article className="daily-gmv-card" key={item.name}><header><h3>{item.name}</h3><span className="eyebrow">{title}</span></header><strong>{formatPrecise(value)}</strong><footer>{day.label}</footer></article>
+        })}
+      </div>
+      <p className="global-chart-note">日维度下按店铺展示 {title}；选择店铺后仅展示该店铺的当日数值。</p>
+    </ChartShell>
+  )
+}
+
 export function MetricChart({ platform, period, spec, indicator = false, store }: { platform: PlatformName; period: Period; spec: MetricSpec; indicator?: boolean; store?: string }) {
   const [detailView, setDetailView] = useState(true)
   const [feeView, setFeeView] = useState<'summary' | 'daily' | 'weekly'>('summary')
   const color = categoryColors[spec.category] ?? '#5fb7e6'
   const isGmv = spec.field === '平台成交GMV'
   const isFee = spec.field === '平台费用合计' || spec.field === '技术运营服务费' || spec.field === '快递信息服务费'
+  const summaryLabel = period === 'day' ? '当日汇总' : '周期汇总'
 
   if (platform === '总计') {
     const buckets = periodBuckets(period)
@@ -102,8 +125,7 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
         return point
       })
       return (
-        <ChartShell title="GMV" subtitle="总计 · 所有平台日GMV">
-          <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
+        <ChartShell title="GMV" subtitle="总计 · 所有平台日GMV" summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
           <ResponsiveContainer width="100%" height={indicator ? 220 : 280}>
             <LineChart data={data}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{reportData.map((report, index) => <Line key={report.platform} type="monotone" dataKey={report.platform} stroke={['#79dbc4', '#5fb7e6', '#34d6b3', '#e9ae64'][index]} strokeWidth={2.5} dot={{ r: 3 }} />)}</LineChart>
           </ResponsiveContainer>
@@ -132,8 +154,7 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
       const isSummary = feeView === 'summary' || period === 'day'
       const visibleTrendData = feeView === 'weekly' && period === 'month' ? weeklyTrendData : trendData
       return (
-        <ChartShell title="平台费用合计" subtitle="总计 · 每个平台一根费用堆叠柱">
-          <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
+        <ChartShell title="平台费用合计" subtitle="总计 · 每个平台一根费用堆叠柱" summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
           <div className="chart-tabs"><button className={isSummary ? 'selected' : ''} type="button" onClick={() => setFeeView('summary')}>费用构成</button>{period !== 'day' ? <button className={feeView === 'daily' || (feeView === 'weekly' && period !== 'month') ? 'selected' : ''} type="button" onClick={() => setFeeView('daily')}>{period === 'year' ? '按月趋势' : '按日趋势'}</button> : null}{period === 'month' ? <button className={feeView === 'weekly' ? 'selected' : ''} type="button" onClick={() => setFeeView('weekly')}>按周趋势</button> : null}</div>
           {isSummary ? <ResponsiveContainer width="100%" height={indicator ? 220 : 280}>
             <BarChart data={data} stackOffset="none">
@@ -154,8 +175,7 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
       return point
     })
     return (
-      <ChartShell title="管理费用合计" subtitle="总计 · 各平台管理费用叠加">
-        <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
+      <ChartShell title="管理费用合计" subtitle="总计 · 各平台管理费用叠加" summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
         <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={data}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{reportData.map((report, index) => <Bar key={report.platform} dataKey={report.platform} stackId="mgmt" fill={['#9aa8a0', '#b9c6c0', '#0f766e', '#e9ae64'][index]} />)}</BarChart></ResponsiveContainer>
       </ChartShell>
     )
@@ -163,6 +183,10 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
 
   const storeShare = store ? storeShares[platform as DetailPlatform].find((item) => item.name === store)?.share ?? 1 : 1
   const totalValue = fieldSummaryValue(platform, spec.field, period) * storeShare
+  const usesDailyCards = ['活动折扣', '技术运营服务费', '快递信息服务费'].includes(spec.field)
+  if (period === 'day' && usesDailyCards) {
+    return <DailyMetricCards platform={platform as DetailPlatform} store={store} field={spec.field} title={spec.chartTitle} totalValue={totalValue} />
+  }
   if (isGmv) {
     const dailyData = storeFieldDetailSeries(platform as DetailPlatform, spec.field, period).filter((item) => !store || item.name === store)
     const combinedDailyData = periodBuckets(period).map((bucket, index) => {
@@ -179,8 +203,7 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
     }, [])
     const visibleGmvData = period === 'month' && !detailView ? weeklyData : combinedDailyData
     return (
-      <ChartShell title="GMV" subtitle={`${platform} · ${store ?? '按店铺'}`}>
-        <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
+      <ChartShell title="GMV" subtitle={`${platform} · ${store ?? '按店铺'}`} summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
         {period === 'month' ? <div className="chart-tabs"><button className={detailView ? 'selected' : ''} type="button" onClick={() => setDetailView(true)}>按日趋势</button><button className={!detailView ? 'selected' : ''} type="button" onClick={() => setDetailView(false)}>按周趋势</button></div> : null}
         <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><LineChart data={visibleGmvData}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" type="category" allowDuplicatedCategory={false} tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{dailyData.map((item, index) => <Line key={item.name} type="monotone" dataKey={item.name} name={item.name} stroke={['#79dbc4', '#5fb7e6', '#e9ae64'][index]} strokeWidth={2.5} />)}</LineChart></ResponsiveContainer>
       </ChartShell>
@@ -219,37 +242,36 @@ export function MetricChart({ platform, period, spec, indicator = false, store }
     const visibleStoreTrend = feeView === 'weekly' && period === 'month' ? storeWeeklyData : storeTrendData
     const isSummary = feeView === 'summary' || period === 'day'
     return (
-      <ChartShell title="平台费用合计" subtitle={`${platform} · ${store ?? '具体费用组成'}`}>
-        <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
+      <ChartShell title="平台费用合计" subtitle={`${platform} · ${store ?? '具体费用组成'}`} summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
         <div className="chart-tabs"><button className={isSummary ? 'selected' : ''} type="button" onClick={() => setFeeView('summary')}>费用构成</button>{period !== 'day' ? <button className={feeView === 'daily' || (feeView === 'weekly' && period !== 'month') ? 'selected' : ''} type="button" onClick={() => setFeeView('daily')}>{period === 'year' ? '按月趋势' : '按日趋势'}</button> : null}{period === 'month' ? <button className={feeView === 'weekly' ? 'selected' : ''} type="button" onClick={() => setFeeView('weekly')}>按周趋势</button> : null}</div>
         {isSummary ? (store ? <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><PieChart><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={82} stroke="rgba(213,234,225,.16)">{pieData.map((item, index) => <Cell key={item.name} fill={['#5fb7e6', '#79dbc4', '#34d6b3', '#e9ae64', '#b794f6', '#f87171'][index % 6]} />)}</Pie></PieChart></ResponsiveContainer> : <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={storeSummaryData}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{fields.map((field, index) => <Bar key={field} dataKey={field} stackId="fees" fill={['#5fb7e6', '#79dbc4', '#34d6b3', '#e9ae64', '#b794f6', '#f87171'][index % 6]} />)}</BarChart></ResponsiveContainer>) : (store ? <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={visibleFeeData}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{fields.map((field, index) => <Bar key={field} dataKey={field} stackId="fees" fill={['#5fb7e6', '#79dbc4', '#34d6b3', '#e9ae64', '#b794f6', '#f87171'][index % 6]} />)}</BarChart></ResponsiveContainer> : <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><LineChart data={visibleStoreTrend}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{stores.map((item, index) => <Line key={item.name} type="monotone" dataKey={item.name} stroke={['#79dbc4', '#5fb7e6', '#e9ae64'][index]} strokeWidth={2.5} />)}</LineChart></ResponsiveContainer>)}
       </ChartShell>
     )
   }
   if (spec.field === '管理费用合计') {
-    if (period === 'day') {
+    const fields = managementFeeFields(platform)
+    const data = periodBuckets(period).map((bucket) => {
+      const point: Record<string, string | number> = { label: bucket.label }
+      fields.forEach((field) => { point[field] = fieldPeriodValue(platform, field, period, bucket.indexes) * storeShare })
+      return point
+    })
+    const pieData = fields.map((field) => ({ name: field, value: Number(data[0]?.[field] ?? 0) })).filter((item) => item.value !== 0)
+    if (period === 'day' && store) {
       return (
-        <ChartShell title="管理费用合计" subtitle={`${platform} · 期间费用`}>
-          <div className="daily-metric normal"><span>当日数值</span><strong>{formatPrecise(totalValue)}</strong><p>管理费用合计</p></div>
+        <ChartShell title="管理费用合计" subtitle={`${platform} · ${store} · 费用构成`} summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
+          <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><PieChart><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={82} stroke="rgba(213,234,225,.16)">{pieData.map((item, index) => <Cell key={item.name} fill={managementFeeColors[index % managementFeeColors.length]} />)}</Pie></PieChart></ResponsiveContainer>
         </ChartShell>
       )
     }
-    const dailyData = storeFieldDetailSeries(platform as DetailPlatform, spec.field, period).filter((item) => !store || item.name === store)
-    const combinedData = periodBuckets(period).map((bucket, index) => {
-      const point: Record<string, string | number> = { label: bucket.label }
-      dailyData.forEach((store) => { point[store.name] = store.data[index]?.value ?? 0 })
-      return point
-    })
     return (
-      <ChartShell title="管理费用合计" subtitle={`${platform} · ${store ?? '各店铺叠加'}`}>
-        <div className="chart-summary-value">{formatPrecise(totalValue)}</div>
-        <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={combinedData}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{dailyData.map((store, index) => <Bar key={store.name} dataKey={store.name} stackId="mgmt" fill={['#79dbc4', '#5fb7e6', '#e9ae64'][index % 3]} />)}</BarChart></ResponsiveContainer>
+      <ChartShell title="管理费用合计" subtitle={`${platform} · ${store ?? '费用构成叠加'}`} summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}>
+        <ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={data}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Legend wrapperStyle={{ color: '#8da39b', fontSize: 11 }} />{fields.map((field, index) => <Bar key={field} dataKey={field} stackId="mgmt" fill={managementFeeColors[index % managementFeeColors.length]} />)}</BarChart></ResponsiveContainer>
       </ChartShell>
     )
   }
   void color
   const data = platformFieldBuckets(platform as DetailPlatform, spec.field, period).map((item) => ({ ...item, value: item.value * storeShare }))
-  return <ChartShell title={spec.chartTitle} subtitle={`${platform} · ${store ?? spec.field}`}><div className="chart-summary-value">{formatPrecise(totalValue)}</div><ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={data}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Bar dataKey="value" fill={color} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></ChartShell>
+  return <ChartShell title={spec.chartTitle} subtitle={`${platform} · ${store ?? spec.field}`} summary={{ label: summaryLabel, value: formatPrecise(totalValue) }}><ResponsiveContainer width="100%" height={indicator ? 220 : 280}><BarChart data={data}><CartesianGrid stroke="rgba(213,234,225,.08)" strokeDasharray="4 6" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} stroke="#8da39b" fontSize={11} /><YAxis tickFormatter={formatAmount} tickLine={false} axisLine={false} width={56} stroke="#8da39b" fontSize={11} /><Tooltip contentStyle={{ background: '#101a18', border: '1px solid rgba(121,219,196,.24)', borderRadius: 6, color: '#d7e8e1', fontSize: 12 }} labelStyle={{ color: '#79dbc4' }} formatter={tooltipAmount} /><Bar dataKey="value" fill={color} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></ChartShell>
 }
 
 // 仅用于消除 ReportRow 类型未使用警告（保留以便未来扩展）

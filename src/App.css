@@ -228,10 +228,14 @@ body { background: #000; }
 .metric-delta svg { display: none; }
 .dashboard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .chart-shell { min-height: 662px; border: 0; border-radius: 12px; background: var(--surface); }
-.chart-shell__header { min-height: 69px; padding: 14px 15px 10px; border-bottom-color: #303030; }
+.chart-shell__header { min-height: 92px; align-items: center; padding: 16px 15px; border-bottom-color: #303030; }
 .chart-shell__header h3 { margin-top: 6px; color: #c8c8c8; font-size: 14px; }
 .chart-shell__body { padding: 0 15px 14px; }
-.chart-summary-value { margin-top: 12px; color: #f6ffff; font-size: 16px; }
+.chart-shell__heading { min-width: 0; }
+.chart-shell__summary { display: grid; justify-items: end; gap: 5px; margin-left: 16px; text-align: right; }
+.chart-shell__summary span { color: #9d9d9d; font-size: 12px; }
+.chart-shell__summary strong { color: #f6ffff; font-size: 24px; font-weight: 500; line-height: 1; white-space: nowrap; }
+@media (max-width: 640px) { .chart-shell__header { min-height: 86px; padding: 14px; }.chart-shell__summary strong { font-size: 20px; } }
 .daily-gmv-card { border-color: #484848; border-radius: 8px; background: #242424; }
 .dashboard-source-note { border: 1px solid #484848; border-radius: 8px; background: #242424; }
 .dashboard-engine-hint { border: 0; border-radius: 8px; background: #4851ad; color: #f3f3f3; }
