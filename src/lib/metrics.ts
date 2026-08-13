@@ -2,6 +2,8 @@ import { type PlatformName, type ReportRow, reportDataWithHaoyiku as reportData 
 
 export type Period = 'day' | 'week' | 'month' | 'year'
 export type DetailPlatform = Exclude<PlatformName, '总计'>
+export interface PeriodBucket { label: string; indexes: number[] }
+export interface DateRange { start: string; end: string }
 
 export interface MetricSpec {
   field: string
@@ -156,6 +158,17 @@ export function periodBuckets(period: Period) {
   })
 }
 
+export function dateRangeBuckets(range: DateRange): PeriodBucket[] {
+  return datePoints()
+    .filter((point) => point.date <= TODAY && point.date >= range.start && point.date <= range.end)
+    .reverse()
+    .map((point) => ({ label: formatShortDate(point.date), indexes: [point.dailyIndex] }))
+}
+
+export function resolvePeriodBuckets(period: Period, dateRange?: DateRange): PeriodBucket[] {
+  return dateRange ? dateRangeBuckets(dateRange) : periodBuckets(period)
+}
+
 export function rowPeriodValue(row: ReportRow, period: Period, indexes: number[]) {
   // 统一基于 daily 数组按 indexes 取值，不再依赖 monthTotal/yearTotal
   void period
@@ -166,15 +179,15 @@ export function fieldPeriodValue(platform: PlatformName, field: string, period: 
   return collectRows(platform, (row) => row.field === field).reduce((sum, item) => sum + rowPeriodValue(item.row, period, indexes), 0)
 }
 
-export function fieldSummaryValue(platform: PlatformName, field: string, period: Period) {
+export function fieldSummaryValue(platform: PlatformName, field: string, period: Period, buckets = periodBuckets(period)) {
   // 统一基于 periodBuckets 计算，指标卡与图表口径完全一致
   const rows = collectRows(platform, (row) => row.field === field)
-  const allIndexes = periodBuckets(period).flatMap((bucket) => bucket.indexes)
+  const allIndexes = buckets.flatMap((bucket) => bucket.indexes)
   return rows.reduce((sum, item) => sum + allIndexes.reduce((subtotal, index) => subtotal + (item.row.daily[index]?.value ?? 0), 0), 0)
 }
 
-export function platformFieldBuckets(platform: DetailPlatform, field: string, period: Period) {
-  return periodBuckets(period).map((bucket) => ({
+export function platformFieldBuckets(platform: DetailPlatform, field: string, period: Period, buckets = periodBuckets(period)) {
+  return buckets.map((bucket) => ({
     label: bucket.label,
     value: fieldPeriodValue(platform, field, period, bucket.indexes),
   }))
@@ -187,10 +200,10 @@ export function storeFieldBuckets(platform: DetailPlatform, field: string, perio
   }))
 }
 
-export function storeFieldDetailSeries(platform: DetailPlatform, field: string, period: Period) {
+export function storeFieldDetailSeries(platform: DetailPlatform, field: string, period: Period, buckets = periodBuckets(period)) {
   return storeShares[platform].map((store) => ({
     name: store.name,
-    data: periodBuckets(period).map((bucket) => ({
+    data: buckets.map((bucket) => ({
       label: bucket.label,
       value: fieldPeriodValue(platform, field, period, bucket.indexes) * store.share,
     })),
@@ -209,8 +222,8 @@ export function feeColor(field: string) {
   return feeColors[Math.max(0, platformFeeFields('总计').indexOf(field)) % feeColors.length]
 }
 
-export function feeBuckets(platform: PlatformName, period: Period) {
-  return periodBuckets(period).map((bucket) => {
+export function feeBuckets(platform: PlatformName, period: Period, buckets = periodBuckets(period)) {
+  return buckets.map((bucket) => {
     const point: Record<string, string | number> = { label: bucket.label }
     platformFeeFields(platform).forEach((field) => {
       point[field] = fieldPeriodValue(platform, field, period, bucket.indexes)

@@ -219,6 +219,12 @@ body { background: #000; }
 .global-dashboard-head__actions { align-self: stretch; align-items: end; }
 .global-dashboard-head__actions p { max-width: 355px; margin-bottom: 0; color: #a0a0a0; }
 .global-dashboard-filters { padding: 0 2px; border: 0; border-radius: 0; background: transparent; }
+.dashboard-date-filter { display: flex; align-items: center; gap: 7px; min-height: 32px; color: #a0a0a0; font-size: 12px; }
+.dashboard-date-filter input { min-width: 132px; min-height: 32px; padding: 0 8px; border: 1px solid #474747; border-radius: 4px; background: #242424; color: #dedede; font: inherit; color-scheme: dark; }
+.dashboard-date-filter i { color: #777; font-style: normal; }
+.dashboard-date-filter button { min-height: 30px; padding: 0 7px; border: 0; color: #aaa; background: transparent; font-size: 12px; }
+.dashboard-date-filter button:hover { color: #fff; }
+@media (max-width: 900px) { .global-dashboard-filters { flex-wrap: wrap; }.dashboard-date-filter { order: 3; width: 100%; }.global-dashboard-filters__scope { flex-wrap: wrap; } }
 .metric-summary-grid { gap: 20px; }
 .metric-summary-card { min-height: 178px; padding: 15px; border: 0; border-radius: 12px; background: var(--surface); }
 .metric-summary-card h3 { margin-top: 6px; color: #c8c8c8; font-size: 14px; }
@@ -624,6 +630,18 @@ td { border-top-color: #303030; }
 .platform-user-dialog .dialog-field input:focus, .platform-user-dialog .dialog-field select:focus { border-color: #b580e9; box-shadow: 0 0 0 2px rgba(181, 128, 233, .16); }
 .platform-user-dialog .dialog-field small { color: #8d8d94; font-size: 11px; line-height: 1.45; }
 .platform-user-dialog__full { grid-column: 1 / -1; }
+.platform-user-dialog__choice > div, .team-member-scope > div { display: inline-flex; width: fit-content; gap: 3px; padding: 3px; border: 1px solid #424247; border-radius: 6px; background: #252527; }
+.platform-user-dialog__choice button, .team-member-scope button { min-height: 28px; padding: 0 10px; border: 0; border-radius: 4px; color: #a9a9b0; background: transparent; font-size: 12px; }
+.platform-user-dialog__choice button:hover, .team-member-scope button:hover { color: #e4e4e9; background: #343437; }
+.platform-user-dialog__choice button.active, .team-member-scope button.active { color: #f2ebff; background: #684197; }
+.team-member-dialog__fixed-value, .team-member-dialog__notice { margin: 0; padding: 10px 11px; border: 1px solid #3e3e43; border-radius: 6px; color: #b9b9c0; background: #242426; font-size: 12px; line-height: 1.5; }
+.team-member-dialog__notice { color: #deb77f; border-color: #604a2c; background: #2c241a; }
+.team-member-scope { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 12px; padding: 10px 14px; border-bottom: 1px solid #303032; color: #9b9ba2; font-size: 12px; }
+.team-member-scope > small { flex: 1 1 240px; color: #83838b; line-height: 1.45; }
+.team-invite-dialog__result { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 3px 8px; padding: 11px 12px; border: 1px solid #3b594d; border-radius: 6px; background: #1e2b25; }
+.team-invite-dialog__result strong { color: #e5e5e9; font-size: 13px; }
+.team-invite-dialog__result span { color: #abbab3; font-size: 12px; }
+.team-invite-dialog__result small { grid-column: 1 / -1; color: #85ad96 !important; }
 .platform-user-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding: 16px 24px 20px; border-top: 1px solid #39393c; }
 .platform-user-dialog footer button { min-height: 34px; padding: 0 15px; border-radius: 6px; font-size: 13px; }
 .platform-user-dialog footer .secondary-action { border: 1px solid #505054; color: #d3d3d7; background: transparent; }
@@ -680,18 +698,43 @@ td { border-top-color: #303030; }
 .platform-role-dialog__field > legend { margin-bottom: 10px; color: #d5d5d9; font-size: 13px; }
 .platform-role-dialog__field > p { margin: 0 0 11px; color: #96969d; font-size: 12px; line-height: 1.5; }
 .platform-role-dialog__options { display: flex; flex-wrap: wrap; gap: 8px; }
-.platform-role-dialog__options label, .platform-role-dialog__permissions label { display: inline-flex; align-items: center; gap: 7px; color: #c8c8cd; font-size: 12px; cursor: pointer; }
+.platform-role-dialog__options label { display: inline-flex; align-items: center; gap: 7px; color: #c8c8cd; font-size: 12px; cursor: pointer; }
 .platform-role-dialog__options label { min-height: 30px; padding: 0 9px; border: 1px solid #3c3c40; border-radius: 5px; background: #242426; }
+.platform-role-dialog__scope-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; padding: 0 10px 0 12px; border: 1px solid #3c3c40; border-radius: 6px; background: #242426; }
+.platform-role-dialog__scope-summary span { color: #b8b8be; font-size: 12px; }
+.platform-role-dialog__scope-summary button { min-height: 27px; padding: 0 9px; border: 0; border-radius: 4px; color: #d7e9ff; background: #2d5c8f; font-size: 12px; }
+.platform-role-dialog__scope-summary button:hover { background: #3770ab; }
 .platform-role-dialog input[type='checkbox'] { appearance: none; flex: 0 0 14px; width: 14px; min-width: 14px; height: 14px; min-height: 14px; padding: 0; margin: 0; border: 1px solid #777780; border-radius: 3px; background: #1b1b1d; cursor: pointer; }
 .platform-role-dialog input[type='checkbox']:checked { border-color: #9dccff; background: #9dccff; }
 .platform-role-dialog input[type='checkbox']:checked::after { content: ''; display: block; width: 6px; height: 3px; margin: 3px 0 0 3px; border-bottom: 1.5px solid #17191a; border-left: 1.5px solid #17191a; transform: rotate(-45deg); }
 .platform-role-dialog input[type='checkbox']:indeterminate { border-color: #9dccff; background: #9dccff; }
 .platform-role-dialog input[type='checkbox']:indeterminate::after { content: ''; display: block; width: 7px; height: 1.5px; margin: 5px 0 0 2.5px; border-radius: 1px; background: #17191a; }
 .platform-role-dialog input[type='checkbox']:focus-visible { outline: 2px solid #9dccff; outline-offset: 2px; }
-.platform-role-dialog__permissions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-.platform-role-dialog__permissions section { display: grid; gap: 8px; padding: 11px; border: 1px solid #39393d; border-radius: 7px; background: #202022; }
-.platform-role-dialog__permissions strong { color: #e0e0e4; font-size: 12px; font-weight: 500; }
 .platform-role-dialog footer { margin-top: 18px; }
+.business-role-dialog__permissions { display: grid; gap: 4px; max-height: min(52dvh, 440px); padding: 12px 14px; overflow-y: auto; border: 1px solid #39393d; border-radius: 7px; background: #202022; }
+.business-role-dialog__permissions label { display: inline-flex; align-items: center; gap: 7px; color: #c8c8cd; font-size: 12px; cursor: pointer; }
+.business-role-dialog__node { display: grid; gap: 5px; }
+.business-role-dialog__node--module { padding-block: 5px; }
+.business-role-dialog__node--module > label { color: #e3e3e7; font-weight: 500; }
+.business-role-dialog__children { display: grid; gap: 5px; margin: 1px 0 1px 7px; padding-left: 12px; border-left: 1px solid #3a3a3d; }
+.business-role-dialog__children label { color: #aaaab0; font-size: 11.5px; }
+.platform-team-selector-backdrop { z-index: 110; }
+.team-selector-dialog { width: min(580px, calc(100vw - 40px)); }
+.team-selector-dialog__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 22px 10px; color: #a7a7ad; font-size: 12px; }
+.team-selector-dialog__toolbar > div { display: flex; gap: 5px; }
+.team-selector-dialog__toolbar button { min-height: 26px; padding: 0 7px; border: 0; border-radius: 4px; color: #a9cfff; background: transparent; font-size: 12px; }
+.team-selector-dialog__toolbar button:hover { color: #e5f1ff; background: #2b3e54; }
+.team-selector-dialog__list { display: grid; gap: 6px; max-height: min(50dvh, 370px); margin: 0 22px 18px; padding: 8px; overflow-y: auto; border: 1px solid #3b3b3f; border-radius: 6px; background: #202022; }
+.team-selector-dialog__list label { min-height: 38px; display: flex; align-items: center; gap: 9px; padding: 0 9px; border-radius: 4px; color: #d3d3d8; font-size: 13px; cursor: pointer; }
+.team-selector-dialog__list label:hover { background: #2a2a2d; }
+.team-selector-dialog__list input[type='checkbox'], .merchant-role-groups__list input[type='checkbox'] { appearance: none; flex: 0 0 14px; width: 14px; height: 14px; padding: 0; margin: 0; border: 1px solid #777780; border-radius: 3px; background: #1b1b1d; }
+.team-selector-dialog__list input[type='checkbox']:checked, .merchant-role-groups__list input[type='checkbox']:checked { border-color: #9dccff; background: #9dccff; }
+.team-selector-dialog__list input[type='checkbox']:checked::after, .merchant-role-groups__list input[type='checkbox']:checked::after { content: ''; display: block; width: 6px; height: 3px; margin: 3px 0 0 3px; border-bottom: 1.5px solid #17191a; border-left: 1.5px solid #17191a; transform: rotate(-45deg); }
+.merchant-role-groups { margin: 16px 22px 0; }
+.merchant-role-groups__list { display: grid; gap: 5px; max-height: 164px; padding: 8px; overflow-y: auto; border: 1px solid #3d3d40; border-radius: 6px; background: #222224; }
+.merchant-role-groups__list label { min-height: 34px; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 0 8px; border-radius: 4px; color: #d0d0d5; font-size: 12px; cursor: pointer; }
+.merchant-role-groups__list label:hover { background: #2c2c2f; }
+.merchant-role-groups__list small { overflow: hidden; color: #888890; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .manager-role-dialog { width: min(760px, calc(100vw - 40px)); }
 .manager-role-dialog__hint { margin: 14px 24px 0; color: #98989f; font-size: 12px; line-height: 1.55; }
 .manager-role-dialog__permissions { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid #39393d; border-radius: 7px; background: #202022; }
@@ -981,7 +1024,6 @@ td { border-top-color: #303030; }
   .platform-role-table__head, .platform-role-table__row { min-width: 790px; }
   .platform-organization-role-table { overflow-x: auto; }
   .platform-organization-role-table__head, .platform-organization-role-table__row { min-width: 720px; }
-  .platform-role-dialog__permissions { grid-template-columns: 1fr; }
   .manager-role-dialog__permissions { grid-template-columns: 1fr; }
   .platform-user-dialog__fields { grid-template-columns: 1fr; }
   .platform-user-dialog__full { grid-column: auto; }
@@ -1015,6 +1057,38 @@ td { border-top-color: #303030; }
 .ledger-dialog .permission-tree__root input[type='checkbox']:focus-visible,
 .ledger-dialog .permission-tree__item input[type='checkbox']:focus-visible { outline: 2px solid #e9e9e9; outline-offset: 2px; }
 .ledger-dialog .permission-tree__root, .ledger-dialog .permission-tree__item { display: flex; align-items: center; gap: 7px; min-height: 28px; }
+.team-group-name { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.team-group-name svg { width: 15px; height: 15px; color: #aaaab2; }
+.team-group-expand-cell { padding: 0 !important; background: #19191a; }
+.team-group-members { padding: 18px 20px 20px; }
+.team-group-members__head, .group-member-manager__summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.team-group-members__head { margin-bottom: 14px; }
+.team-group-members__head > div, .group-member-manager__summary > div { display: grid; gap: 4px; }
+.team-group-members__head strong, .group-member-manager__summary strong { color: #ededf0; font-size: 13px; font-weight: 600; }
+.team-group-members__head small, .group-member-manager__summary small { color: #898990; font-size: 12px; }
+.team-group-members__head .secondary-action, .group-member-manager__summary .secondary-action { min-height: 32px; padding: 0 10px; font-size: 12px; }
+.team-group-members__table-wrap, .group-member-manager__table-wrap { overflow-x: auto; border: 1px solid #3b3b3e; border-radius: 10px; }
+.team-group-members table, .group-member-manager table { width: 100%; min-width: 720px; border-collapse: collapse; }
+.team-group-members th, .group-member-manager th { height: 34px; padding: 0 14px; border-bottom: 1px solid #3b3b3e; color: #8f8f97; background: #262628; font-size: 11px; font-weight: 500; text-align: left; }
+.team-group-members td, .group-member-manager td { min-height: 58px; padding: 9px 14px; border-bottom: 1px solid #323235; color: #d5d5da; font-size: 12px; vertical-align: middle; }
+.team-group-members tbody tr:last-child td, .group-member-manager tbody tr:last-child td { border-bottom: 0; }
+.group-member-manager { width: min(800px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); overflow: hidden; }
+.group-member-manager > header { min-height: 64px; padding: 0 24px; border-bottom: 1px solid #39393c; }
+.group-member-manager > header h3 { margin: 4px 0 0; font-size: 16px; }
+.group-member-manager__body { display: grid; gap: 16px; max-height: min(570px, calc(100dvh - 188px)); padding: 20px 24px; overflow-y: auto; }
+.group-member-manager__join { display: grid; grid-template-columns: minmax(0, 1fr) 140px auto; align-items: end; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #363638; }
+.group-member-manager .dialog-field { display: grid; gap: 7px; min-width: 0; color: #d7d7dc; font-size: 12px; }
+.group-member-manager .dialog-field select { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid #47474b; border-radius: 7px; outline: none; color: #ededf0; background: #262628; font-size: 13px; }
+.group-member-manager .dialog-field select:focus { border-color: #b580e9; box-shadow: 0 0 0 2px rgba(181, 128, 233, .16); }
+.group-member-manager__join .primary-action { min-height: 36px; padding: 0 16px; }
+.group-member-manager__summary { padding: 12px 14px; border: 1px solid #3b3b3e; border-radius: 9px; background: #252527; }
+.group-member-manager > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px 18px; border-top: 1px solid #39393c; }
+
+@media (max-width: 680px) {
+  .group-member-manager__join { grid-template-columns: 1fr; }
+  .group-member-manager__join .primary-action { width: 100%; }
+  .team-group-members, .group-member-manager__body { padding-inline: 14px; }
+}
 .permission-dialog { width: min(900px, calc(100vw - 40px)); }
 .permission-dialog > .dialog-field { margin: 16px 24px 0; }
 .permission-dialog__grids { display: grid; grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr); gap: 18px; padding: 18px 24px 0; }

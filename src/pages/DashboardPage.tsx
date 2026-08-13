@@ -6,6 +6,7 @@ import { ChartShell, MetricChart } from '../components/MetricChart'
 import { costCompositionData, globalPeriodLabel, operatingTrendData, ratioTrendData } from '../data/globalDashboardMock'
 import {
   type Period,
+  type DateRange,
   fieldSummaryValue,
   formatAmount,
   formatPrecise,
@@ -113,9 +114,14 @@ function ExpectedGlobalStatsDialog({ period, onClose }: { period: Period; onClos
 
 function GlobalDashboard({ period, platform, store, onPeriodChange, onPlatformChange, onStoreChange }: { period: Period; platform: PlatformName; store: string; onPeriodChange: (period: Period) => void; onPlatformChange: (platform: PlatformName) => void; onStoreChange: (store: string) => void }) {
   const [expectedStatsOpen, setExpectedStatsOpen] = useState(false)
-  const periodText = period === 'day' ? '前一天' : period === 'week' ? '自然周' : period === 'month' ? '本月' : '本年'
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const dateRange: DateRange | undefined = startDate && endDate && startDate <= endDate ? { start: startDate, end: endDate } : undefined
+  const minDate = reportData[0].dates[0]?.date
+  const maxDate = reportData[0].dates[reportData[0].dates.length - 1]?.date
+  const periodText = dateRange ? `${dateRange.start} 至 ${dateRange.end}` : period === 'day' ? '前一天' : period === 'week' ? '自然周' : period === 'month' ? '本月' : '本年'
   const specs = platformMetricSpecs[platform]
-  const isDailyView = period === 'day'
+  const isDailyView = period === 'day' && !dateRange
   const storeOptions = platform === '总计' ? [] : storeShares[platform]
   return (
     <>
@@ -123,9 +129,9 @@ function GlobalDashboard({ period, platform, store, onPeriodChange, onPlatformCh
         <div className="global-dashboard-title"><div><h2>全局经营看板</h2><span className="global-dashboard-title__notice">当前展示已接入的平台经营数据。</span></div><span className="global-dashboard-title__context">{platform} · {periodText}</span></div>
         <div className="global-dashboard-head__actions"><button className="secondary-action" type="button" onClick={() => setExpectedStatsOpen(true)}>全量数据看板预览</button><p>按日期、平台和店铺筛选后，统计图标题中的汇总值与图表将同步取数。</p></div>
       </section>
-      <section className="filters global-dashboard-filters" aria-label="全局看板筛选" data-prd-anchor="dashboard-global-filters"><div className="segmented">{periods.map((item) => <button className={period === item.key ? 'selected' : ''} key={item.key} type="button" onClick={() => onPeriodChange(item.key)}>{item.label}</button>)}</div><div className="global-dashboard-filters__scope"><div className="platform-tabs">{platforms.map((item) => <button className={platform === item ? 'selected' : ''} key={item} type="button" onClick={() => onPlatformChange(item)}>{item}</button>)}</div>{storeOptions.length ? <label className="store-select"><span>店铺</span><select aria-label={`${platform}店铺筛选`} value={store} onChange={(event) => onStoreChange(event.target.value)}><option value="全部店铺">全部店铺</option>{storeOptions.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label> : <span className="store-tabs__hint">选择平台后可筛选店铺</span>}</div></section>
-      <section className="dashboard-grid" data-prd-anchor="dashboard-global-charts">{specs.map((spec) => isDailyView && spec.field === '平台成交GMV' ? <DailyGmvChart key={spec.field} platform={platform} store={store === '全部店铺' ? undefined : store} /> : <MetricChart key={spec.field} platform={platform} period={period} spec={spec} store={store === '全部店铺' ? undefined : store} />)}</section>
-      <section className="dashboard-source-note"><LineChartIcon aria-hidden="true" /><span>数据范围：{platform === '总计' ? reportData.map((item) => item.platform).join(' / ') : `${platform} · ${store}`} · 周期、平台和店铺切换会同步刷新图表标题中的汇总值和图表。</span></section>
+      <section className="filters global-dashboard-filters" aria-label="全局看板筛选" data-prd-anchor="dashboard-global-filters"><div className="segmented">{periods.map((item) => <button className={period === item.key && !dateRange ? 'selected' : ''} key={item.key} type="button" onClick={() => { setStartDate(''); setEndDate(''); onPeriodChange(item.key) }}>{item.label}</button>)}</div><label className="dashboard-date-filter"><span>时间筛选</span><input aria-label="开始日期" type="date" min={minDate} max={maxDate} value={startDate} onChange={(event) => setStartDate(event.target.value)} /><i>至</i><input aria-label="结束日期" type="date" min={startDate || minDate} max={maxDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} />{startDate || endDate ? <button type="button" onClick={() => { setStartDate(''); setEndDate('') }}>清除</button> : null}</label><div className="global-dashboard-filters__scope"><div className="platform-tabs">{platforms.map((item) => <button className={platform === item ? 'selected' : ''} key={item} type="button" onClick={() => onPlatformChange(item)}>{item}</button>)}</div>{storeOptions.length ? <label className="store-select"><span>店铺</span><select aria-label={`${platform}店铺筛选`} value={store} onChange={(event) => onStoreChange(event.target.value)}><option value="全部店铺">全部店铺</option>{storeOptions.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label> : <span className="store-tabs__hint">选择平台后可筛选店铺</span>}</div></section>
+      <section className="dashboard-grid" data-prd-anchor="dashboard-global-charts">{specs.map((spec) => isDailyView && spec.field === '平台成交GMV' ? <DailyGmvChart key={spec.field} platform={platform} store={store === '全部店铺' ? undefined : store} /> : <MetricChart key={spec.field} platform={platform} period={period} spec={spec} store={store === '全部店铺' ? undefined : store} dateRange={dateRange} />)}</section>
+      <section className="dashboard-source-note"><LineChartIcon aria-hidden="true" /><span>数据范围：{platform === '总计' ? reportData.map((item) => item.platform).join(' / ') : `${platform} · ${store}`} · 固定维度或时间筛选、平台和店铺切换会同步刷新图表标题中的汇总值和图表。</span></section>
       <section className="dashboard-engine-hint"><BarChart3 aria-hidden="true" /><div><strong>需要更细的拆解？</strong><span>切到 chatbot 直接追问，经营引擎会基于这些数据生成归因结论。</span></div></section>
       {expectedStatsOpen ? <ExpectedGlobalStatsDialog period={period} onClose={() => setExpectedStatsOpen(false)} /> : null}
     </>

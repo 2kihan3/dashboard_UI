@@ -169,6 +169,8 @@ interface PlatformUser {
   position: string
   employeeId: string
   teamCount: number
+  teamIds?: string[]
+  isSystemAdmin?: boolean
   status: PlatformUserStatus
   registeredAt: string
   lastLoginAt: string
@@ -179,8 +181,6 @@ type PlatformUserCreationType = 'super-admin' | 'system-admin'
 interface PlatformUserCreationTab {
   id: PlatformUserCreationType
   label: string
-  roleOptions: string[]
-  defaultRole: string
 }
 
 const availableTeams = [
@@ -189,17 +189,56 @@ const availableTeams = [
   { id: 'team-3', name: '万顷品牌管理团队' },
 ]
 
-const permissionPages = [
-  { group: '小万同学', items: [{ id: 'chat-workbench', label: '对话工作台' }, { id: 'knowledge-base', label: '知识库' }] },
-  { group: '电商生图', items: [{ id: 'image-tasks', label: '任务管理' }, { id: 'image-assets', label: '生图资产' }] },
-  { group: '商智引擎', items: [{ id: 'business-dashboard', label: '经营看板' }, { id: 'data-center', label: '数据中心' }] },
-  { group: '团队协作', items: [{ id: 'team-members', label: '团队成员' }, { id: 'team-groups', label: '小组管理' }] },
+interface BusinessPermissionNode {
+  id: string
+  label: string
+  children?: BusinessPermissionNode[]
+}
+
+const businessPermissionModules: BusinessPermissionNode[] = [
+  {
+    id: 'business-engine', label: '商智引擎', children: [
+      { id: 'business-engine-chatbot', label: 'chatbot' },
+      {
+        id: 'business-engine-dashboard', label: '经营看板', children: [
+          { id: 'business-engine-dashboard-global', label: '全局看板' },
+          { id: 'business-engine-dashboard-team', label: '团队看板' },
+          { id: 'business-engine-dashboard-personal', label: '个人看板' },
+        ],
+      },
+      {
+        id: 'business-engine-data-center', label: '数据中心', children: [
+          {
+            id: 'business-engine-data-center-daily-task', label: '日报任务记录', children: [
+              { id: 'business-engine-data-center-daily-task-publish', label: '发布' },
+              { id: 'business-engine-data-center-daily-task-edit', label: '修改' },
+              { id: 'business-engine-data-center-daily-task-retry', label: '重试' },
+              { id: 'business-engine-data-center-daily-task-upload', label: '人工上传' },
+              { id: 'business-engine-data-center-daily-task-download', label: '下载源表' },
+            ],
+          },
+          {
+            id: 'business-engine-data-center-daily-data', label: '日报数据', children: [
+              { id: 'business-engine-data-center-daily-data-manual-entry', label: '手动填写' },
+            ],
+          },
+        ],
+      },
+      { id: 'business-engine-skill-market', label: 'skill市场' },
+      { id: 'business-engine-data-lineage', label: '数据溯源' },
+    ],
+  },
+  { id: 'ecom-image', label: '电商生图' },
 ]
 
+function getBusinessPermissionLeafIds(nodes: BusinessPermissionNode[]): string[] {
+  return nodes.flatMap((node) => node.children?.length ? getBusinessPermissionLeafIds(node.children) : [node.id])
+}
+
 const initialPlatformRoles: PlatformRole[] = [
-  { id: 'operations', name: '运营专员', teamIds: ['team-1', 'team-2'], memberCount: 6, status: 'enabled', pageIds: ['chat-workbench', 'image-tasks', 'image-assets', 'business-dashboard'] },
-  { id: 'analyst', name: '数据分析师', teamIds: ['team-1', 'team-2', 'team-3'], memberCount: 4, status: 'enabled', pageIds: ['business-dashboard', 'data-center'] },
-  { id: 'content-maker', name: '内容生产员', teamIds: ['team-1'], memberCount: 2, status: 'disabled', pageIds: ['chat-workbench', 'image-tasks', 'image-assets'] },
+  { id: 'operations', name: '运营专员', teamIds: ['team-1', 'team-2'], memberCount: 6, status: 'enabled', pageIds: ['ecom-image', 'business-engine-chatbot', 'business-engine-dashboard-global', 'business-engine-dashboard-team', 'business-engine-data-center-daily-task-publish', 'business-engine-data-center-daily-task-edit', 'business-engine-data-center-daily-task-retry', 'business-engine-data-center-daily-task-upload', 'business-engine-data-center-daily-task-download'] },
+  { id: 'analyst', name: '数据分析师', teamIds: ['team-1', 'team-2', 'team-3'], memberCount: 4, status: 'enabled', pageIds: ['business-engine-dashboard-global', 'business-engine-dashboard-team', 'business-engine-dashboard-personal', 'business-engine-data-center-daily-task-download', 'business-engine-data-center-daily-data-manual-entry', 'business-engine-data-lineage'] },
+  { id: 'content-maker', name: '内容生产员', teamIds: ['team-1'], memberCount: 2, status: 'disabled', pageIds: ['ecom-image'] },
 ]
 
 interface ManagerPermissionNode {
@@ -255,8 +294,8 @@ const initialPlatformUsers: PlatformUser[] = [
 ]
 
 const platformUserCreationTabs: PlatformUserCreationTab[] = [
-  { id: 'super-admin', label: '超管', roleOptions: ['系统管理员', '商户管理员', '小组长', '普通成员'], defaultRole: '系统管理员' },
-  { id: 'system-admin', label: '系统管理员', roleOptions: ['商户管理员', '小组长', '普通成员'], defaultRole: '商户管理员' },
+  { id: 'super-admin', label: '超管' },
+  { id: 'system-admin', label: '系统管理员' },
 ]
 
 interface BillingRule {
@@ -631,8 +670,10 @@ function UserManagementPage() {
   const [openActionId, setOpenActionId] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [creationType, setCreationType] = useState<PlatformUserCreationType>('super-admin')
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false)
+  const [assignToTeam, setAssignToTeam] = useState(false)
+  const [selectedTeamId, setSelectedTeamId] = useState('')
   const allSelected = users.length > 0 && selectedIds.length === users.length
-  const activeCreationTab = platformUserCreationTabs.find((tab) => tab.id === creationType) ?? platformUserCreationTabs[0]
 
   const toggleSelection = (id: string) => {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
@@ -658,18 +699,22 @@ function UserManagementPage() {
     const phone = String(form.get('phone') ?? '').trim()
     if (!username || !name || !email || !phone) return
     const today = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' }).format(new Date()).replaceAll('-', '/')
+    const teamId = assignToTeam ? selectedTeamId : ''
+    const organizationRole = teamId ? String(form.get('organizationRole') ?? '普通成员') : '普通成员'
     setUsers((current) => [{
       id: `user-${Date.now()}`,
       name,
-      userType: activeCreationTab.label,
-      organizationRole: String(form.get('organizationRole') ?? activeCreationTab.defaultRole),
+      userType: isSystemAdmin ? '系统管理员' : '普通用户',
+      organizationRole,
       email,
       phone,
       company: '–',
       department: '–',
       position: '–',
       employeeId: String(form.get('employeeId') ?? '').trim() || '–',
-      teamCount: 0,
+      teamCount: teamId ? 1 : 0,
+      teamIds: teamId ? [teamId] : [],
+      isSystemAdmin,
       status: 'normal',
       registeredAt: today,
       lastLoginAt: '–',
@@ -677,9 +722,17 @@ function UserManagementPage() {
     setIsCreateDialogOpen(false)
   }
 
+  const openCreateDialog = () => {
+    setCreationType('super-admin')
+    setIsSystemAdmin(false)
+    setAssignToTeam(false)
+    setSelectedTeamId('')
+    setIsCreateDialogOpen(true)
+  }
+
   return <main className="platform-admin-main platform-users-page" id="main-content" tabIndex={-1} aria-labelledby="platform-users-title">
     <h1 id="platform-users-title" className="sr-only">用户管理</h1>
-    <div className="platform-users-page__toolbar"><button className="platform-users-page__create" type="button" onClick={() => setIsCreateDialogOpen(true)}><Plus aria-hidden="true" />新增用户</button></div>
+    <div className="platform-users-page__toolbar"><button className="platform-users-page__create" type="button" onClick={openCreateDialog}><Plus aria-hidden="true" />新增用户</button></div>
     <section className="platform-users-table-wrap" aria-label="平台用户列表">
       <table className="platform-users-table">
         <thead>
@@ -712,7 +765,7 @@ function UserManagementPage() {
       <form key={creationType} className="ledger-dialog platform-user-dialog" role="dialog" aria-modal="true" aria-labelledby="platform-user-dialog-title" onSubmit={createUser}>
         <header><div><span className="eyebrow">platform_user</span><h3 id="platform-user-dialog-title">新增用户</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setIsCreateDialogOpen(false)}>×</button></header>
         <nav className="platform-user-dialog__tabs" aria-label="新增账号类型">
-          {platformUserCreationTabs.map((tab) => <button key={tab.id} type="button" className={creationType === tab.id ? 'active' : ''} aria-current={creationType === tab.id ? 'page' : undefined} onClick={() => setCreationType(tab.id)}>{tab.label}</button>)}
+          {platformUserCreationTabs.map((tab) => <button key={tab.id} type="button" className={creationType === tab.id ? 'active' : ''} aria-current={creationType === tab.id ? 'page' : undefined} onClick={() => { setCreationType(tab.id); if (tab.id === 'system-admin') setIsSystemAdmin(false) }}>{tab.label}</button>)}
         </nav>
         <div className="platform-user-dialog__fields">
           <label className="dialog-field"><span>用户名</span><input name="username" placeholder="请输入用户名" autoFocus required /></label>
@@ -721,7 +774,9 @@ function UserManagementPage() {
           <label className="dialog-field"><span>员工编号</span><input name="employeeId" placeholder="选填" /></label>
           <label className="dialog-field"><span>联系电话</span><input name="phone" type="tel" inputMode="numeric" placeholder="请输入联系电话" required /></label>
           <label className="dialog-field"><span>初始密码</span><input name="password" type="password" autoComplete="new-password" placeholder="请输入初始密码" required /></label>
-          <label className="dialog-field platform-user-dialog__full"><span>组织角色</span><select name="organizationRole" defaultValue={activeCreationTab.defaultRole}>{activeCreationTab.roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}</select></label>
+          {creationType === 'super-admin' ? <label className="dialog-field platform-user-dialog__full platform-user-dialog__choice"><span>设为系统管理员</span><div><button type="button" className={isSystemAdmin ? 'active' : ''} onClick={() => setIsSystemAdmin(true)}>是</button><button type="button" className={!isSystemAdmin ? 'active' : ''} onClick={() => setIsSystemAdmin(false)}>否</button></div></label> : null}
+          <label className="dialog-field platform-user-dialog__full platform-user-dialog__choice"><span>归属商户团队</span><div><button type="button" className={assignToTeam ? 'active' : ''} onClick={() => setAssignToTeam(true)}>是</button><button type="button" className={!assignToTeam ? 'active' : ''} onClick={() => { setAssignToTeam(false); setSelectedTeamId('') }}>否</button></div></label>
+          {assignToTeam ? <><label className="dialog-field"><span>商户团队</span><select value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} required><option value="" disabled>请选择商户团队</option>{availableTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label className="dialog-field"><span>团队组织角色</span><select name="organizationRole" defaultValue="普通成员"><option value="商户管理员">商户管理员</option><option value="普通成员">普通成员</option></select></label></> : null}
         </div>
         <footer><button className="secondary-action" type="button" onClick={() => setIsCreateDialogOpen(false)}>取消</button><button className="primary-action" type="submit">创建用户</button></footer>
       </form>
@@ -737,6 +792,17 @@ function ManagerPermissionTreeNode({ node, selectedIds, onToggle, depth = 0 }: {
   return <div className={`manager-role-dialog__node${depth === 0 ? ' manager-role-dialog__node--module' : ''}`}>
     <label><input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => onToggle(permissionIds)} />{node.label}</label>
     {node.children?.length ? <div className="manager-role-dialog__children">{node.children.map((child) => <ManagerPermissionTreeNode key={child.id} node={child} selectedIds={selectedIds} onToggle={onToggle} depth={depth + 1} />)}</div> : null}
+  </div>
+}
+
+function BusinessPermissionTreeNode({ node, selectedIds, onToggle, depth = 0 }: { node: BusinessPermissionNode; selectedIds: Set<string>; onToggle: (permissionIds: string[]) => void; depth?: number }) {
+  const permissionIds = getBusinessPermissionLeafIds([node])
+  const isChecked = permissionIds.every((id) => selectedIds.has(id))
+  const isPartial = !isChecked && permissionIds.some((id) => selectedIds.has(id))
+
+  return <div className={`business-role-dialog__node${depth === 0 ? ' business-role-dialog__node--module' : ''}`}>
+    <label><input type="checkbox" checked={isChecked} ref={(element) => { if (element) element.indeterminate = isPartial }} onChange={() => onToggle(permissionIds)} />{node.label}</label>
+    {node.children?.length ? <div className="business-role-dialog__children">{node.children.map((child) => <BusinessPermissionTreeNode key={child.id} node={child} selectedIds={selectedIds} onToggle={onToggle} depth={depth + 1} />)}</div> : null}
   </div>
 }
 
@@ -766,6 +832,8 @@ function PlatformRolesPage() {
   const [roleTab, setRoleTab] = useState<'organization' | 'business'>('organization')
   const [businessRoles, setBusinessRoles] = useState(initialPlatformRoles)
   const [editingBusinessRole, setEditingBusinessRole] = useState<PlatformRole | null>(null)
+  const [isTeamSelectorOpen, setIsTeamSelectorOpen] = useState(false)
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([])
   const [organizationRoles, setOrganizationRoles] = useState(initialOrganizationRoles)
   const [editingOrganizationRole, setEditingOrganizationRole] = useState<OrganizationRoleTemplate | null>(null)
 
@@ -781,6 +849,26 @@ function PlatformRolesPage() {
     const nextRole = { ...editingBusinessRole, name }
     setBusinessRoles((current) => nextRole.id ? current.map((role) => role.id === nextRole.id ? nextRole : role) : [...current, { ...nextRole, id: `role-${Date.now()}` }])
     setEditingBusinessRole(null)
+  }
+
+  const toggleBusinessRolePermissions = (permissionIds: string[]) => {
+    setEditingBusinessRole((current) => {
+      if (!current) return current
+      const nextPermissionIds = new Set(current.pageIds)
+      const isSelected = permissionIds.every((id) => nextPermissionIds.has(id))
+      permissionIds.forEach((id) => isSelected ? nextPermissionIds.delete(id) : nextPermissionIds.add(id))
+      return { ...current, pageIds: [...nextPermissionIds] }
+    })
+  }
+
+  const openTeamSelector = () => {
+    if (!editingBusinessRole) return
+    setSelectedTeamIds(editingBusinessRole.teamIds)
+    setIsTeamSelectorOpen(true)
+  }
+
+  const toggleSelectedTeam = (teamId: string) => {
+    setSelectedTeamIds((current) => current.includes(teamId) ? current.filter((id) => id !== teamId) : [...current, teamId])
   }
 
   return <main className="platform-admin-main platform-role-page" id="main-content" tabIndex={-1} aria-labelledby="platform-role-title">
@@ -817,10 +905,18 @@ function PlatformRolesPage() {
       <form className="ledger-dialog platform-role-dialog" onSubmit={saveRole}>
         <header><div><span className="eyebrow">business_role</span><h3>{editingBusinessRole.id ? '编辑业务角色' : '新增业务角色'}</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setEditingBusinessRole(null)}>×</button></header>
         <label className="dialog-field"><span>角色名称</span><input value={editingBusinessRole.name} onChange={(event) => setEditingBusinessRole({ ...editingBusinessRole, name: event.target.value })} placeholder="例如：运营专员" required /></label>
-        <fieldset className="dialog-field platform-role-dialog__field"><legend>可用团队</legend><div className="platform-role-dialog__options">{availableTeams.map((team) => <label key={team.id}><input type="checkbox" checked={editingBusinessRole.teamIds.includes(team.id)} onChange={() => setEditingBusinessRole({ ...editingBusinessRole, teamIds: editingBusinessRole.teamIds.includes(team.id) ? editingBusinessRole.teamIds.filter((id) => id !== team.id) : [...editingBusinessRole.teamIds, team.id] })} />{team.name}</label>)}</div></fieldset>
-        <fieldset className="dialog-field platform-role-dialog__field"><legend>生产端页面权限</legend><p>角色默认可访问的生产端页面；实际可用范围仍受团队、小组模块授权限制。</p><div className="platform-role-dialog__permissions">{permissionPages.map((group) => <section key={group.group}><strong>{group.group}</strong>{group.items.map((page) => <label key={page.id}><input type="checkbox" checked={editingBusinessRole.pageIds.includes(page.id)} onChange={() => setEditingBusinessRole({ ...editingBusinessRole, pageIds: editingBusinessRole.pageIds.includes(page.id) ? editingBusinessRole.pageIds.filter((id) => id !== page.id) : [...editingBusinessRole.pageIds, page.id] })} />{page.label}</label>)}</section>)}</div></fieldset>
+        <fieldset className="dialog-field platform-role-dialog__field"><legend>可用团队</legend><p>系统级角色可应用于多个商户团队，请从完整团队列表中选择。</p><div className="platform-role-dialog__scope-summary"><span>{editingBusinessRole.teamIds.length ? `已选择 ${editingBusinessRole.teamIds.length} 个团队` : '暂未选择团队'}</span><button type="button" onClick={openTeamSelector}>选择团队</button></div></fieldset>
+        <fieldset className="dialog-field platform-role-dialog__field"><legend>生产端功能权限</legend><p>按模块、功能、页面、按钮逐级配置。勾选父级会批量选择下属权限点，商户侧仍会受团队和小组的模块开通范围限制。</p><div className="business-role-dialog__permissions">{businessPermissionModules.map((module) => <BusinessPermissionTreeNode key={module.id} node={module} selectedIds={new Set(editingBusinessRole.pageIds)} onToggle={toggleBusinessRolePermissions} />)}</div></fieldset>
         <footer><button className="secondary-action" type="button" onClick={() => setEditingBusinessRole(null)}>取消</button><button className="primary-action" type="submit">保存</button></footer>
       </form>
+    </div> : null}
+    {editingBusinessRole && isTeamSelectorOpen ? <div className="dialog-backdrop platform-team-selector-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setIsTeamSelectorOpen(false)}>
+      <section className="ledger-dialog team-selector-dialog" role="dialog" aria-modal="true" aria-labelledby="team-selector-title">
+        <header><div><span className="eyebrow">available_teams</span><h3 id="team-selector-title">选择可用团队</h3></div><button className="dialog-close" type="button" aria-label="关闭团队选择弹窗" onClick={() => setIsTeamSelectorOpen(false)}>×</button></header>
+        <div className="team-selector-dialog__toolbar"><span>已选择 {selectedTeamIds.length} 个团队</span><div><button type="button" onClick={() => setSelectedTeamIds(availableTeams.map((team) => team.id))}>全选</button><button type="button" onClick={() => setSelectedTeamIds([])}>清空</button></div></div>
+        <div className="team-selector-dialog__list">{availableTeams.map((team) => <label key={team.id}><input type="checkbox" checked={selectedTeamIds.includes(team.id)} onChange={() => toggleSelectedTeam(team.id)} /><span>{team.name}</span></label>)}</div>
+        <footer><button className="secondary-action" type="button" onClick={() => setIsTeamSelectorOpen(false)}>取消</button><button className="primary-action" type="button" onClick={() => { setEditingBusinessRole((current) => current ? { ...current, teamIds: selectedTeamIds } : current); setIsTeamSelectorOpen(false) }}>确认选择</button></footer>
+      </section>
     </div> : null}
   </main>
 }

@@ -12,7 +12,9 @@ import {
   ScrollText,
   Sparkles,
   Store,
+  Trash2,
   Unlink,
+  UserRoundPlus,
   Users,
   X,
 } from 'lucide-react'
@@ -167,30 +169,16 @@ interface TeamMemberRecord {
   orgInfo: string
   organizationRole: '系统管理员' | '商户管理员' | '小组长' | '普通员工'
   group: string
-  businessRole: '老板' | '财务' | '运营' | '其他'
+  businessRole: string
+  merchantAdmin: boolean
+  groupRole: 'leader' | 'member' | 'none'
   status: '正常' | '已禁用'
   peaBalance: number
   modules: string[]
 }
 
-type MemberCreationType = 'super-admin' | 'system-admin' | 'merchant-admin' | 'group-leader'
-
-interface MemberCreationTab {
-  id: MemberCreationType
-  label: string
-  roleOptions: string[]
-  defaultRole: string
-  fixedRole?: boolean
-}
-
-const memberCreationTabs: MemberCreationTab[] = [
-  { id: 'super-admin', label: '超管', roleOptions: ['系统管理员', '商户管理员', '小组长', '普通成员'], defaultRole: '系统管理员' },
-  { id: 'system-admin', label: '系统管理员', roleOptions: ['商户管理员', '小组长', '普通成员'], defaultRole: '商户管理员' },
-  { id: 'merchant-admin', label: '商户管理员', roleOptions: ['商户管理员', '小组长', '普通成员'], defaultRole: '商户管理员' },
-  { id: 'group-leader', label: '小组长', roleOptions: ['普通成员'], defaultRole: '普通成员', fixedRole: true },
-]
-
-const toTeamOrganizationRole = (role: string): TeamMemberRecord['organizationRole'] => role === '普通成员' ? '普通员工' : role as TeamMemberRecord['organizationRole']
+type TeamOperatorRole = 'merchant-admin' | 'group-leader'
+type TeamMemberDialogMode = 'create' | 'invite' | 'edit'
 
 interface TeamGroupRecord {
   id: string
@@ -209,6 +197,13 @@ interface OrganizationPermissionRecord {
 }
 
 const teamModuleOptions = ['电商生图', '商智引擎', '小万同学', 'AI开品', 'AI媒体流', 'LORA美人']
+const globalDirectoryUsers = [
+  { id: 'directory-li', username: 'li.ops', name: '李运营', email: 'li.ops@example.com', phone: '13800001122', employeeId: 'F-1001' },
+  { id: 'directory-wang', username: 'wang.finance', name: '王财务', email: 'wang.finance@example.com', phone: '13900002233', employeeId: 'F-1002' },
+  { id: 'directory-chen', username: 'chen.data', name: '陈分析', email: 'chen.data@example.com', phone: '13600003308', employeeId: 'F-1003' },
+  { id: 'directory-lin', username: 'lin.design', name: '林设计', email: 'lin.design@example.com', phone: '13700004421', employeeId: 'F-1021' },
+  { id: 'directory-zhao', username: 'zhao.ops', name: '赵运营', email: 'zhao.ops@example.com', phone: '13500005196', employeeId: 'F-1035' },
+]
 const dataPermissionPlatforms = ['快手', '爱库存', '唯品会', '好衣库', '抖店']
 const dailyTaskPermissionFields = ['任务 ID', '任务来源', '平台', '店铺', '任务日期', '业务日期', '豌豆消耗', '归属人员', '审核人', '结果预览', '任务结果', '日报状态', '任务日志']
 const dailyDataPermissionFields = ['业务日期', '平台名称', '店铺名称', 'GMV', '销售收入', '实收收入', '退款金额', '活动折扣', '销售成本', '平台费用', '推广费用', '运费', '管理费用', '净利润']
@@ -283,6 +278,13 @@ const getPermissionLeafIds = (node: PermissionTreeNode): string[] => node.childr
 
 const getPermissionTreeLeafIds = (nodes: PermissionTreeNode[]) => nodes.flatMap(getPermissionLeafIds)
 
+function getMemberOrganizationLabel(member: TeamMemberRecord) {
+  if (member.merchantAdmin && member.groupRole === 'leader') return '商户管理员 / 小组长'
+  if (member.merchantAdmin) return '商户管理员'
+  if (member.groupRole === 'leader') return '小组长'
+  return '普通成员'
+}
+
 function PermissionTree({
   nodes,
   selectedIds,
@@ -334,20 +336,25 @@ function PermissionTree({
 function BusinessPermissionDialog({
   role,
   businessRoles,
+  groups,
+  selectedGroupIds,
   onClose,
   onSave,
 }: {
   role: string
   businessRoles: string[]
+  groups: TeamGroupRecord[]
+  selectedGroupIds: string[]
   onClose: () => void
-  onSave: (name: string) => void
+  onSave: (name: string, groupIds: string[]) => void
 }) {
   const [roleName, setRoleName] = useState(role)
+  const [groupIds, setGroupIds] = useState(selectedGroupIds)
   const [operationSelections, setOperationSelections] = useState(() => new Set(getPermissionTreeLeafIds(productionPermissionTree)))
   const [dataSelections, setDataSelections] = useState(() => new Set(dataPermissionPlatforms.flatMap((platform) => ['业务日期', '平台名称', '店铺名称'].map((field) => `data-${platform}-${field}`))))
 
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <form className="ledger-dialog create-task-dialog permission-dialog" onSubmit={(event) => { event.preventDefault(); onSave(roleName) }}>
+    <form className="ledger-dialog create-task-dialog permission-dialog" onSubmit={(event) => { event.preventDefault(); onSave(roleName, groupIds) }}>
       <header>
         <div>
           <span className="eyebrow">business_role</span>
@@ -359,6 +366,11 @@ function BusinessPermissionDialog({
         <span>角色名称</span>
         <input value={roleName} onChange={(event) => setRoleName(event.target.value)} required />
       </label>
+      <section className="dialog-field merchant-role-groups">
+        <span>可用小组</span>
+        <small className="dialog-field-hint">商户管理员只能在本团队的小组范围内配置该角色。</small>
+        <div className="merchant-role-groups__list">{groups.map((group) => <label key={group.id}><input type="checkbox" checked={groupIds.includes(group.id)} onChange={() => setGroupIds((current) => current.includes(group.id) ? current.filter((id) => id !== group.id) : [...current, group.id])} /><span>{group.name}</span><small>{group.modules.join('、') || '暂未开通模块'}</small></label>)}</div>
+      </section>
       <div className="permission-dialog__grids">
         <section className="dialog-field">
           <span>生产端功能</span>
@@ -387,9 +399,9 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
   ])
   const [editingOrganizationPermission, setEditingOrganizationPermission] = useState<OrganizationPermissionRecord | null>(null)
   const [members, setMembers] = useState<TeamMemberRecord[]>([
-    { id: 'member-1', avatar: '李', name: '李运营', email: 'li.ops@example.com', phone: '138****1122', orgInfo: '澄明电商 / 运营部 / 运营专员', organizationRole: '小组长', group: '运营组', businessRole: '运营', status: '正常', peaBalance: 1260, modules: [] },
-    { id: 'member-2', avatar: '王', name: '王财务', email: 'wang.finance@example.com', phone: '139****2233', orgInfo: '澄明电商 / 财务部 / 财务主管', organizationRole: '小组长', group: '财务组', businessRole: '财务', status: '正常', peaBalance: 980, modules: [] },
-    { id: 'member-3', avatar: '陈', name: '陈分析', email: 'chen.data@example.com', phone: '136****3308', orgInfo: '澄明电商 / 数据部 / 数据分析师', organizationRole: '普通员工', group: '运营组', businessRole: '运营', status: '正常', peaBalance: 640, modules: [] },
+    { id: 'member-1', avatar: '李', name: '李运营', email: 'li.ops@example.com', phone: '138****1122', orgInfo: '澄明电商 / 运营部 / 运营专员', organizationRole: '小组长', group: '运营组', businessRole: '运营', merchantAdmin: false, groupRole: 'leader', status: '正常', peaBalance: 1260, modules: [] },
+    { id: 'member-2', avatar: '王', name: '王财务', email: 'wang.finance@example.com', phone: '139****2233', orgInfo: '澄明电商 / 财务部 / 财务主管', organizationRole: '小组长', group: '财务组', businessRole: '财务', merchantAdmin: false, groupRole: 'leader', status: '正常', peaBalance: 980, modules: [] },
+    { id: 'member-3', avatar: '陈', name: '陈分析', email: 'chen.data@example.com', phone: '136****3308', orgInfo: '澄明电商 / 数据部 / 数据分析师', organizationRole: '普通员工', group: '运营组', businessRole: '运营', merchantAdmin: false, groupRole: 'member', status: '正常', peaBalance: 640, modules: [] },
   ])
   const [groups, setGroups] = useState<TeamGroupRecord[]>([
     { id: 'group-1', name: '运营组', leader: '李运营', balance: 3200, status: '正常', createdAt: '2026-05-12', stores: ['官方旗舰店', '品牌集合店'], modules: ['电商生图', '商智引擎'] },
@@ -397,12 +409,26 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
   ])
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null)
   const [editingMember, setEditingMember] = useState<TeamMemberRecord | null>(null)
-  const [showMemberCreationTabs, setShowMemberCreationTabs] = useState(false)
-  const [memberCreationType, setMemberCreationType] = useState<MemberCreationType>('super-admin')
+  const [memberDialogMode, setMemberDialogMode] = useState<TeamMemberDialogMode | null>(null)
+  const [operatorRole, setOperatorRole] = useState<TeamOperatorRole>('merchant-admin')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteBusinessRole, setInviteBusinessRole] = useState('')
+  const [inviteMerchantAdmin, setInviteMerchantAdmin] = useState(false)
+  const [groupAssignmentRequested, setGroupAssignmentRequested] = useState(false)
   const [permissionMember, setPermissionMember] = useState<TeamMemberRecord | null>(null)
   const [editingGroup, setEditingGroup] = useState<TeamGroupRecord | null>(null)
+  const [managingGroup, setManagingGroup] = useState<TeamGroupRecord | null>(null)
+  const [joiningMemberId, setJoiningMemberId] = useState('')
+  const [joiningGroupRole, setJoiningGroupRole] = useState<'leader' | 'member'>('member')
+  const [inviteTargetGroupName, setInviteTargetGroupName] = useState<string | null>(null)
   const [adjusting, setAdjusting] = useState<{ type: 'member' | 'group'; id: string; direction: 'add' | 'subtract'; amount: number } | null>(null)
   const [businessRoles, setBusinessRoles] = useState(['老板', '财务', '运营', '其他'])
+  const [businessRoleGroupIds, setBusinessRoleGroupIds] = useState<Record<string, string[]>>({
+    '老板': ['group-1', 'group-2'],
+    '财务': ['group-2'],
+    '运营': ['group-1'],
+    '其他': [],
+  })
   const [editingBusinessRole, setEditingBusinessRole] = useState<string | null>(null)
   const [teamDashboards, setTeamDashboards] = useState([
     { id: 'team-dashboard-1', name: '经营日报总览', group: '运营组', status: '已发布' },
@@ -420,21 +446,43 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
   const [storePassword, setStorePassword] = useState('')
   const teamPlatforms = Array.from(new Set(teamPlatformAccounts.map((account) => account.platform)))
   const selectedPlatformAccounts = teamPlatformAccounts.filter((account) => account.platform === selectedPlatform)
-  const groupLeader = permissionMember?.group ? members.find((member) => member.group === permissionMember.group && member.organizationRole === '小组长')?.name ?? '暂无组长' : '—'
-  const activeMemberCreationTab = memberCreationTabs.find((tab) => tab.id === memberCreationType) ?? memberCreationTabs[0]
+  const groupLeader = permissionMember?.group ? members.find((member) => member.group === permissionMember.group && member.groupRole === 'leader')?.name ?? '暂无组长' : '—'
+  const leaderGroup = groups.find((group) => group.leader === '李运营') ?? groups[0]
+  const matchedInvitee = globalDirectoryUsers.find((user) => user.email.toLowerCase() === inviteEmail.trim().toLowerCase())
 
   const openMemberCreation = () => {
-    const defaultRole = toTeamOrganizationRole(memberCreationTabs[0].defaultRole)
-    setMemberCreationType('super-admin')
-    setShowMemberCreationTabs(true)
-    setEditingMember({ id: '', avatar: '', username: '', name: '', email: '', phone: '', employeeId: '', initialPassword: '', orgInfo: '', organizationRole: defaultRole, group: '', businessRole: '其他', status: '正常', peaBalance: 0, modules: [] })
+    const isGroupLeader = operatorRole === 'group-leader'
+    setEditingMember({ id: '', avatar: '', username: '', name: '', email: '', phone: '', employeeId: '', initialPassword: '', orgInfo: '', organizationRole: '普通员工', group: isGroupLeader ? leaderGroup?.name ?? '' : '', businessRole: '', merchantAdmin: false, groupRole: isGroupLeader ? 'member' : 'none', status: '正常', peaBalance: 0, modules: [] })
+    setGroupAssignmentRequested(isGroupLeader)
+    setMemberDialogMode('create')
   }
 
   const saveMember = () => {
-    if (!editingMember || !editingMember.name.trim()) return
-    setMembers((rows) => editingMember.id ? rows.map((row) => row.id === editingMember.id ? editingMember : row) : [...rows, { ...editingMember, id: `member-${Date.now()}`, avatar: editingMember.name.trim().slice(0, 1) }])
+    if (!editingMember || !editingMember.name.trim() || (!editingMember.id && !editingMember.businessRole)) return
+    const organizationRole: TeamMemberRecord['organizationRole'] = editingMember.merchantAdmin ? '商户管理员' : editingMember.groupRole === 'leader' ? '小组长' : '普通员工'
+    const nextMember = { ...editingMember, organizationRole }
+    setMembers((rows) => nextMember.id ? rows.map((row) => row.id === nextMember.id ? nextMember : row) : [...rows, { ...nextMember, id: `member-${Date.now()}`, avatar: nextMember.name.trim().slice(0, 1) }])
     setEditingMember(null)
-    setShowMemberCreationTabs(false)
+    setMemberDialogMode(null)
+  }
+  const saveInvitation = () => {
+    if (!matchedInvitee || !inviteBusinessRole) return
+    const isGroupLeader = operatorRole === 'group-leader'
+    const group = inviteTargetGroupName ?? (isGroupLeader ? leaderGroup?.name ?? '' : '')
+    const mustJoinGroup = Boolean(group)
+    const nextMember: TeamMemberRecord = { id: `member-${Date.now()}`, avatar: matchedInvitee.name.slice(0, 1), username: matchedInvitee.username, name: matchedInvitee.name, email: matchedInvitee.email, phone: matchedInvitee.phone, employeeId: matchedInvitee.employeeId, orgInfo: '待补充', organizationRole: inviteMerchantAdmin && !mustJoinGroup ? '商户管理员' : '普通员工', group, businessRole: inviteBusinessRole, merchantAdmin: inviteMerchantAdmin && !mustJoinGroup, groupRole: mustJoinGroup ? 'member' : 'none', status: '正常', peaBalance: 0, modules: [] }
+    setMembers((rows) => {
+      const existingMember = rows.find((member) => member.email === nextMember.email)
+      if (!existingMember) return [...rows, nextMember]
+      return rows.map((member) => member.id !== existingMember.id ? member : mustJoinGroup
+        ? { ...member, group, groupRole: 'member', businessRole: inviteBusinessRole, organizationRole: member.merchantAdmin ? '商户管理员' : '普通员工' }
+        : { ...member, merchantAdmin: inviteMerchantAdmin, businessRole: inviteBusinessRole, organizationRole: inviteMerchantAdmin ? '商户管理员' : member.groupRole === 'leader' ? '小组长' : '普通员工' })
+    })
+    setMemberDialogMode(null)
+    setInviteEmail('')
+    setInviteBusinessRole('')
+    setInviteMerchantAdmin(false)
+    setInviteTargetGroupName(null)
   }
   const savePermission = () => {
     if (!permissionMember) return
@@ -447,14 +495,78 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
     setEditingGroup(null)
   }
 
+  const openGroupManager = (group: TeamGroupRecord) => {
+    setManagingGroup(group)
+    setJoiningMemberId('')
+    setJoiningGroupRole('member')
+  }
+  const setMemberGroupRole = (group: TeamGroupRecord, member: TeamMemberRecord, role: 'leader' | 'member') => {
+    const priorGroup = member.group
+    const priorRole = member.groupRole
+    setMembers((rows) => rows.map((row) => {
+      if (role === 'leader' && row.group === group.name && row.groupRole === 'leader' && row.id !== member.id) {
+        return { ...row, groupRole: 'member', organizationRole: row.merchantAdmin ? '商户管理员' : '普通员工' }
+      }
+      if (row.id !== member.id) return row
+      return { ...row, group: group.name, groupRole: role, organizationRole: row.merchantAdmin ? '商户管理员' : role === 'leader' ? '小组长' : '普通员工' }
+    }))
+    setGroups((rows) => rows.map((row) => {
+      if (row.id === group.id) return { ...row, leader: role === 'leader' ? member.name : row.leader === member.name ? '' : row.leader }
+      if (row.name === priorGroup && priorRole === 'leader') return { ...row, leader: '' }
+      return row
+    }))
+  }
+  const addMemberToGroup = () => {
+    if (!managingGroup || !joiningMemberId) return
+    const member = members.find((item) => item.id === joiningMemberId)
+    if (!member) return
+    setMemberGroupRole(managingGroup, member, joiningGroupRole)
+    setJoiningMemberId('')
+    setJoiningGroupRole('member')
+  }
+  const removeMemberFromGroup = (group: TeamGroupRecord, member: TeamMemberRecord) => {
+    setMembers((rows) => rows.map((row) => row.id === member.id ? { ...row, group: '', groupRole: 'none', organizationRole: row.merchantAdmin ? '商户管理员' : '普通员工' } : row))
+    if (member.groupRole === 'leader') setGroups((rows) => rows.map((row) => row.id === group.id ? { ...row, leader: '' } : row))
+  }
+
   return <>
     <article className="data-table-card">
       <header><div><span className="eyebrow">team_console</span><h3>{team.name}</h3></div><button className="secondary-action" type="button" onClick={onBack}><ArrowLeft aria-hidden="true" />返回团队列表</button></header>
       <div className="dialog-meta"><span>{team.desc}</span><span>创建时间：{team.createdAt}</span></div>
     </article>
-    <div className="admin-sub-tabs"><button type="button" className={tab === 'members' ? 'active' : ''} onClick={() => setTab('members')}>成员管理</button><button type="button" className={tab === 'groups' ? 'active' : ''} onClick={() => setTab('groups')}>小组管理</button><button type="button" className={tab === 'platforms' ? 'active' : ''} onClick={() => setTab('platforms')}>平台管理</button><button type="button" className={tab === 'dashboards' ? 'active' : ''} onClick={() => setTab('dashboards')}>仪表盘管理</button><button type="button" className={tab === 'permissions' ? 'active' : ''} onClick={() => setTab('permissions')}>权限管理</button><button type="button" className={tab === 'logs' ? 'active' : ''} onClick={() => setTab('logs')}>操作日志</button></div>
-    {tab === 'members' ? <article className="data-table-card"><header><div><span className="eyebrow">team_members</span><h3>成员管理</h3></div><div className="table-header-actions"><button type="button" className="secondary-action" onClick={openMemberCreation}><Plus aria-hidden="true" />创建成员</button><button type="button" className="primary-action" onClick={() => { setShowMemberCreationTabs(false); setEditingMember({ id: '', avatar: '', name: '', email: '', phone: '', orgInfo: '', organizationRole: '普通员工', group: '', businessRole: '其他', status: '正常', peaBalance: 0, modules: [] }) }}><Plus aria-hidden="true" />邀请成员</button></div></header><div className="table-scroll"><table><thead><tr><th>成员</th><th>手机号</th><th>公司 / 部门 / 岗位</th><th>组织角色</th><th>业务角色</th><th>账号状态</th><th>豌豆余额</th><th>小组可见模块</th><th>操作项</th></tr></thead><tbody>{members.map((member) => { const groupModules = groups.find((group) => group.name === member.group)?.modules ?? []; return <tr key={member.id}><td><div className="team-member-cell"><span>{member.avatar}</span><div><strong>{member.name}</strong><small>{member.email}</small></div></div></td><td>{member.phone}</td><td>{member.orgInfo}</td><td>{member.organizationRole}</td><td>{member.businessRole}</td><td><span className={`data-pill ${member.status === '正常' ? 'good' : 'warning'}`}>{member.status}</span></td><td>{member.peaBalance}</td><td>{groupModules.join('、') || '—'}</td><td><div className="row-actions"><button type="button" className="table-action" onClick={() => { setShowMemberCreationTabs(false); setEditingMember(member) }}>编辑信息</button><button type="button" className="table-action" onClick={() => setAdjusting({ type: 'member', id: member.id, direction: 'add', amount: 0 })}>豌豆分配/回收</button><button type="button" className="table-action" onClick={() => setPermissionMember(member)}>权限管理</button><button type="button" className="table-action" onClick={() => setMembers((rows) => rows.map((row) => row.id === member.id ? { ...row, status: row.status === '正常' ? '已禁用' : '正常' } : row))}>{member.status === '正常' ? '禁用账号' : '启用账号'}</button><button type="button" className="table-action danger-action" onClick={() => setMembers((rows) => rows.filter((row) => row.id !== member.id))}>删除账号</button></div></td></tr> })}</tbody></table></div></article> : null}
-    {tab === 'groups' ? <article className="data-table-card"><header><div><span className="eyebrow">team_groups</span><h3>小组管理</h3></div><button type="button" className="primary-action" onClick={() => setEditingGroup({ id: '', name: '', leader: '', balance: 0, status: '正常', createdAt: '', stores: [], modules: [] })}><Plus aria-hidden="true" />创建小组</button></header><div className="table-scroll"><table><thead><tr><th>小组</th><th>小组长</th><th>可见模块</th><th>成员数</th><th>小组余额</th><th>状态</th><th>创建时间</th><th>关联店铺</th><th>操作</th></tr></thead><tbody>{groups.map((group) => <><tr key={group.id}><td><button type="button" className="preview-link" onClick={() => setExpandedGroupId(expandedGroupId === group.id ? null : group.id)}>{expandedGroupId === group.id ? '收起' : '展开'} {group.name}</button></td><td>{group.leader || '—'}</td><td>{group.modules.join('、') || '—'}</td><td>{members.filter((member) => member.group === group.name).length}</td><td>{group.balance}</td><td><span className="data-pill good">{group.status}</span></td><td>{group.createdAt}</td><td>{group.stores.join('、') || '—'}</td><td><div className="row-actions"><button type="button" className="table-action" onClick={() => setEditingGroup({ ...group, stores: [...group.stores], modules: [...group.modules] })}>编辑</button><button type="button" className="table-action" onClick={() => setAdjusting({ type: 'group', id: group.id, direction: 'add', amount: 0 })}>豌豆分配/回收</button><button type="button" className="table-action danger-action" onClick={() => { setGroups((rows) => rows.filter((row) => row.id !== group.id)); setMembers((rows) => rows.map((member) => member.group === group.name ? { ...member, group: '' } : member)) }}>解散小组</button></div></td></tr>{expandedGroupId === group.id ? <tr key={`${group.id}-members`}><td colSpan={9}><div className="team-group-tree"><span>可见模块：{group.modules.join('、') || '暂未配置'}</span>{members.filter((member) => member.group === group.name).map((member) => <span key={member.id}>{member.name} · {member.businessRole}</span>)}{members.every((member) => member.group !== group.name) ? <span>暂无成员</span> : null}</div></td></tr> : null}</>)}</tbody></table></div></article> : null}
+    <div className="admin-sub-tabs">{([{ id: 'members', label: '成员管理' }, { id: 'groups', label: '小组管理' }, { id: 'platforms', label: '平台管理' }, { id: 'dashboards', label: '仪表盘管理' }, { id: 'permissions', label: '权限管理' }, { id: 'logs', label: '操作日志' }] as Array<{ id: TeamDetailTab; label: string }>).filter((item) => operatorRole === 'merchant-admin' || item.id === 'members').map((item) => <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+    {tab === 'members' ? <article className="data-table-card">
+      <header><div><span className="eyebrow">team_members</span><h3>成员管理</h3></div><div className="table-header-actions"><button type="button" className="secondary-action" onClick={openMemberCreation}><Plus aria-hidden="true" />创建成员</button><button type="button" className="primary-action" onClick={() => { setMemberDialogMode('invite'); setInviteEmail(''); setInviteBusinessRole(''); setInviteMerchantAdmin(false) }}><Plus aria-hidden="true" />邀请已有用户</button></div></header>
+      <div className="team-member-scope"><span>当前操作身份</span><div><button type="button" className={operatorRole === 'merchant-admin' ? 'active' : ''} onClick={() => setOperatorRole('merchant-admin')}>商户管理员</button><button type="button" className={operatorRole === 'group-leader' ? 'active' : ''} onClick={() => setOperatorRole('group-leader')}>小组长</button></div><small>{operatorRole === 'merchant-admin' ? '可管理团队内成员、小组与组织角色。' : `仅能管理 ${leaderGroup?.name ?? '当前小组'}，新建和邀请的账号会直接加入该小组。`}</small></div>
+      <div className="table-scroll"><table><thead><tr><th>成员</th><th>手机号</th><th>公司 / 部门 / 岗位</th><th>组织角色</th><th>业务角色</th><th>账号状态</th><th>豌豆余额</th><th>小组可见模块</th><th>操作项</th></tr></thead><tbody>{members.filter((member) => operatorRole === 'merchant-admin' || member.group === leaderGroup?.name).map((member) => { const groupModules = groups.find((group) => group.name === member.group)?.modules ?? []; return <tr key={member.id}><td><div className="team-member-cell"><span>{member.avatar}</span><div><strong>{member.name}</strong><small>{member.email}</small></div></div></td><td>{member.phone}</td><td>{member.orgInfo}</td><td>{getMemberOrganizationLabel(member)}</td><td>{member.businessRole}</td><td><span className={`data-pill ${member.status === '正常' ? 'good' : 'warning'}`}>{member.status}</span></td><td>{member.peaBalance}</td><td>{groupModules.join('、') || '—'}</td><td><div className="row-actions">{operatorRole === 'merchant-admin' ? <><button type="button" className="table-action" onClick={() => { setEditingMember({ ...member }); setGroupAssignmentRequested(Boolean(member.group)); setMemberDialogMode('edit') }}>编辑信息</button><button type="button" className="table-action" onClick={() => setAdjusting({ type: 'member', id: member.id, direction: 'add', amount: 0 })}>豌豆分配/回收</button><button type="button" className="table-action" onClick={() => setPermissionMember({ ...member })}>权限管理</button><button type="button" className="table-action" onClick={() => setMembers((rows) => rows.map((row) => row.id === member.id ? { ...row, status: row.status === '正常' ? '已禁用' : '正常' } : row))}>{member.status === '正常' ? '禁用账号' : '启用账号'}</button><button type="button" className="table-action danger-action" onClick={() => setMembers((rows) => rows.filter((row) => row.id !== member.id))}>删除账号</button></> : <span className="table-action team-member-scope__readonly">仅可通过创建或邀请加入本组</span>}</div></td></tr> })}</tbody></table></div>
+    </article> : null}
+    {tab === 'groups' ? <article className="data-table-card">
+      <header>
+        <div><span className="eyebrow">team_groups</span><h3>小组管理</h3></div>
+        <button type="button" className="primary-action" onClick={() => setEditingGroup({ id: '', name: '', leader: '', balance: 0, status: '正常', createdAt: '', stores: [], modules: [] })}><Plus aria-hidden="true" />创建小组</button>
+      </header>
+      <div className="table-scroll"><table><thead><tr><th>小组</th><th>小组长</th><th>可见模块</th><th>成员数</th><th>小组余额</th><th>状态</th><th>创建时间</th><th>关联店铺</th><th>操作</th></tr></thead><tbody>
+        {groups.map((group) => {
+          const groupMembers = members.filter((member) => member.group === group.name)
+          const isExpanded = expandedGroupId === group.id
+          return <>
+            <tr key={group.id}>
+              <td><button type="button" className="preview-link team-group-name" onClick={() => setExpandedGroupId(isExpanded ? null : group.id)}>{isExpanded ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}{group.name}</button></td>
+              <td>{group.leader || '—'}</td><td>{group.modules.join('、') || '—'}</td><td>{groupMembers.length}</td><td>{group.balance}</td>
+              <td><span className={`data-pill ${group.status === '正常' ? 'good' : 'warning'}`}>{group.status}</span></td><td>{group.createdAt}</td><td>{group.stores.join('、') || '—'}</td>
+              <td><div className="row-actions"><button type="button" className="table-action" onClick={() => openGroupManager(group)}><Users aria-hidden="true" />成员管理</button><button type="button" className="table-action" onClick={() => setEditingGroup({ ...group, stores: [...group.stores], modules: [...group.modules] })}>编辑</button><button type="button" className="table-action" onClick={() => setAdjusting({ type: 'group', id: group.id, direction: 'add', amount: 0 })}>豌豆分配/回收</button><button type="button" className="table-action danger-action" onClick={() => { setGroups((rows) => rows.filter((row) => row.id !== group.id)); setMembers((rows) => rows.map((member) => member.group === group.name ? { ...member, group: '', groupRole: 'none', organizationRole: member.merchantAdmin ? '商户管理员' : '普通员工' } : member)) }}>解散小组</button></div></td>
+            </tr>
+            {isExpanded ? <tr key={`${group.id}-members`}><td colSpan={9} className="team-group-expand-cell"><section className="team-group-members">
+              <header className="team-group-members__head"><div><strong>{group.name}成员列表</strong><small>可见模块：{group.modules.join('、') || '暂未配置'}</small></div><button type="button" className="secondary-action" onClick={() => openGroupManager(group)}><Users aria-hidden="true" />管理成员</button></header>
+              <div className="team-group-members__table-wrap"><table><thead><tr><th>成员</th><th>业务角色</th><th>小组身份</th><th>状态</th><th>豌豆余额</th><th>成员操作</th></tr></thead><tbody>
+                {groupMembers.map((member) => <tr key={member.id}><td><div className="team-member-cell"><span>{member.avatar}</span><div><strong>{member.name}</strong><small>{member.email}</small></div></div></td><td>{member.businessRole || '—'}</td><td><span className={`data-pill ${member.groupRole === 'leader' ? 'warning' : 'normal'}`}>{member.groupRole === 'leader' ? '小组长' : '组员'}</span></td><td><span className={`data-pill ${member.status === '正常' ? 'good' : 'warning'}`}>{member.status}</span></td><td>{member.peaBalance}</td><td><div className="row-actions"><button type="button" className="table-action" onClick={() => openGroupManager(group)}>管理</button><button type="button" className="table-action danger-action" onClick={() => removeMemberFromGroup(group, member)}>移出小组</button></div></td></tr>)}
+                {groupMembers.length === 0 ? <tr><td colSpan={6} className="empty-table-cell">该小组暂无成员，请通过“成员管理”加入团队成员。</td></tr> : null}
+              </tbody></table></div>
+            </section></td></tr> : null}
+          </>
+        })}
+      </tbody></table></div>
+    </article> : null}
     {tab === 'platforms' ? <article className="data-table-card"><header><div><span className="eyebrow">team_platforms</span><h3>{selectedPlatform ? `${selectedPlatform} · 店铺管理` : '平台管理'}</h3></div><div className="table-header-actions">{selectedPlatform ? <button type="button" className="secondary-action" onClick={() => setSelectedPlatform(null)}><ArrowLeft aria-hidden="true" />返回平台列表</button> : null}<button type="button" className="primary-action" onClick={() => selectedPlatform ? (setBindingStore(true), setStoreBindMode('scan'), setStoreName(''), setStoreAccount(''), setStorePassword('')) : (setNewPlatformName(supportedPlatforms[0] ?? ''), setAddingPlatform(true))}><Plus aria-hidden="true" />{selectedPlatform ? '绑定店铺' : '新增平台'}</button></div></header>{selectedPlatform ? <div className="table-scroll"><table><thead><tr><th>店铺名称</th><th>绑定账号</th><th>绑定方式</th><th>绑定时间</th><th>状态</th><th>操作</th></tr></thead><tbody>{selectedPlatformAccounts.map((account) => { const isUnbound = account.status === 'unbound'; const statusLabel = account.status === 'connected' ? '已连接' : isUnbound ? '已解绑' : '已过期'; return <tr key={account.id}><td>{account.stores.join('、') || '—'}</td><td>{account.accountName}</td><td>平台授权</td><td>{account.boundAt}</td><td><span className={`data-pill ${account.status === 'connected' ? 'good' : isUnbound ? 'neutral' : 'warning'}`}>{statusLabel}</span></td><td><button type="button" className="table-action danger-action" disabled={isUnbound} onClick={() => setTeamPlatformAccounts((rows) => rows.map((row) => row.id === account.id ? { ...row, status: 'unbound' } : row))}>{isUnbound ? '已解绑' : '解绑店铺'}</button></td></tr> })}{selectedPlatformAccounts.length === 0 ? <tr><td colSpan={6} className="empty-table-cell">暂未绑定店铺</td></tr> : null}</tbody></table></div> : <div className="table-scroll"><table><thead><tr><th>平台</th><th>已绑定店铺</th><th>已连接账号</th><th>状态</th><th>操作</th></tr></thead><tbody>{teamPlatforms.map((platform) => { const accounts = teamPlatformAccounts.filter((account) => account.platform === platform); return <tr key={platform}><td><strong>{platform}</strong></td><td>{accounts.flatMap((account) => account.stores).join('、') || '—'}</td><td>{accounts.filter((account) => account.status === 'connected').length}</td><td><span className="data-pill good">已启用</span></td><td><button type="button" className="table-action" onClick={() => setSelectedPlatform(platform)}>进入平台</button></td></tr> })}{teamPlatforms.length === 0 ? <tr><td colSpan={5} className="empty-table-cell">暂无平台，请先新增平台</td></tr> : null}</tbody></table></div>}</article> : null}
     {tab === 'dashboards' ? <article className="data-table-card"><header><div><span className="eyebrow">team_dashboard_templates</span><h3>仪表盘管理</h3></div><button type="button" className="primary-action" onClick={() => setTeamDashboards((rows) => [...rows, { id: `team-dashboard-${Date.now()}`, name: `新仪表盘模板 ${rows.length + 1}`, group: '未分配', status: '草稿' }])}><Plus aria-hidden="true" />新建仪表盘</button></header><div className="table-scroll"><table><thead><tr><th>仪表盘名称</th><th>归属小组</th><th>状态</th><th>操作</th></tr></thead><tbody>{teamDashboards.map((dashboard) => <tr key={dashboard.id}><td><strong>{dashboard.name}</strong></td><td>{dashboard.group}</td><td><span className={`data-pill ${dashboard.status === '已发布' ? 'good' : 'neutral'}`}>{dashboard.status}</span></td><td><div className="row-actions"><button type="button" className="table-action" onClick={() => setTeamDashboards((rows) => rows.map((row) => row.id === dashboard.id ? { ...row, status: row.status === '已发布' ? '已停用' : '已发布' } : row))}>{dashboard.status === '已发布' ? '停用' : '发布'}</button><button type="button" className="table-action">编辑</button><button type="button" className="table-action danger-action" onClick={() => setTeamDashboards((rows) => rows.filter((row) => row.id !== dashboard.id))}>删除</button></div></td></tr>)}</tbody></table></div></article> : null}
     {tab === 'permissions' ? <>
@@ -464,30 +576,49 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
     {tab === 'logs' ? <article className="data-table-card"><header><div><span className="eyebrow">team_audit_log</span><h3>操作日志</h3></div></header><div className="table-scroll"><table><thead><tr><th>时间</th><th>操作人</th><th>操作内容</th><th>对象</th></tr></thead><tbody><tr><td>2026-07-28 10:20</td><td>张管理员</td><td>调整成员豌豆余额</td><td>李运营</td></tr><tr><td>2026-07-27 15:32</td><td>王财务</td><td>更新小组店铺权限</td><td>运营组</td></tr><tr><td>2026-07-26 09:10</td><td>张管理员</td><td>创建成员</td><td>陈分析</td></tr></tbody></table></div></article> : null}
     {addingPlatform ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setAddingPlatform(false)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); const platform = newPlatformName; if (platform && !teamPlatforms.includes(platform)) { setTeamPlatformAccounts((rows) => [...rows, { id: `platform-${Date.now()}`, platform, accountName: '待绑定', boundAt: '—', stores: [], status: 'expired' }]); setNewPlatformName('') }; setAddingPlatform(false) }}><header><div><span className="eyebrow">add_platform</span><h3>新增平台</h3></div><button type="button" className="dialog-close" onClick={() => setAddingPlatform(false)}>×</button></header><label className="dialog-field"><span>平台名称</span><select value={newPlatformName} onChange={(event) => setNewPlatformName(event.target.value)} required><option value="" disabled>请选择已启用平台</option>{supportedPlatforms.map((platform) => <option key={platform} value={platform}>{platform}</option>)}</select></label><footer><button className="secondary-action" type="button" onClick={() => setAddingPlatform(false)}>取消</button><button className="primary-action" type="submit">新增平台</button></footer></form></div> : null}
     {bindingStore && selectedPlatform ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setBindingStore(false)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); setTeamPlatformAccounts((rows) => [...rows, { id: `store-${Date.now()}`, platform: selectedPlatform, accountName: storeBindMode === 'password' ? storeAccount : `${selectedPlatform}扫码授权账号`, boundAt: new Date().toISOString().slice(0, 16).replace('T', ' '), stores: [storeName.trim() || `${selectedPlatform}店铺`], status: 'connected' }]); setBindingStore(false) }}><header><div><span className="eyebrow">bind_store</span><h3>绑定 {selectedPlatform} 店铺</h3></div><button type="button" className="dialog-close" onClick={() => setBindingStore(false)}>×</button></header><label className="dialog-field"><span>店铺名称</span><input value={storeName} onChange={(event) => setStoreName(event.target.value)} placeholder="请输入店铺名称" required /></label><div className="dialog-field"><span>绑定方式</span><div className="bind-mode-list"><button type="button" className={`bind-mode-card ${storeBindMode === 'scan' ? 'active' : ''}`} onClick={() => setStoreBindMode('scan')}><span className="bind-mode-card__icon"><QrCode aria-hidden="true" /></span><div><strong>扫码绑定</strong><small>使用平台 App 授权</small></div></button><button type="button" className={`bind-mode-card ${storeBindMode === 'password' ? 'active' : ''}`} onClick={() => setStoreBindMode('password')}><span className="bind-mode-card__icon"><KeyRound aria-hidden="true" /></span><div><strong>账号密码绑定</strong><small>使用后台账号授权</small></div></button></div></div>{storeBindMode === 'scan' ? <div className="bind-scan-area"><div className="bind-qr-placeholder"><QrCode aria-hidden="true" /></div><small>请使用 {selectedPlatform} App 扫码确认授权。</small></div> : <><label className="dialog-field"><span>平台账号</span><input value={storeAccount} onChange={(event) => setStoreAccount(event.target.value)} required /></label><label className="dialog-field"><span>平台密码</span><input type="password" value={storePassword} onChange={(event) => setStorePassword(event.target.value)} required /></label></>}<footer><button className="secondary-action" type="button" onClick={() => setBindingStore(false)}>取消</button><button className="primary-action" type="submit">确认绑定</button></footer></form></div> : null}
-    {editingMember ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && (setEditingMember(null), setShowMemberCreationTabs(false))}>
-      <form key={showMemberCreationTabs ? memberCreationType : editingMember.id} className={showMemberCreationTabs ? 'ledger-dialog platform-user-dialog' : 'ledger-dialog create-task-dialog'} role="dialog" aria-modal="true" aria-labelledby="team-member-dialog-title" onSubmit={(event) => { event.preventDefault(); saveMember() }}>
-        <header><div><span className="eyebrow">team_member</span><h3 id="team-member-dialog-title">{editingMember.id ? '编辑成员' : '创建成员'}</h3></div><button type="button" className="dialog-close" aria-label="关闭弹窗" onClick={() => { setEditingMember(null); setShowMemberCreationTabs(false) }}>×</button></header>
-        {showMemberCreationTabs ? <>
-          <nav className="platform-user-dialog__tabs" aria-label="创建成员类型">
-            {memberCreationTabs.map((tab) => <button key={tab.id} type="button" className={memberCreationType === tab.id ? 'active' : ''} aria-current={memberCreationType === tab.id ? 'page' : undefined} onClick={() => { setMemberCreationType(tab.id); setEditingMember({ ...editingMember, organizationRole: toTeamOrganizationRole(tab.defaultRole) }) }}>{tab.label}</button>)}
-          </nav>
-          <div className="platform-user-dialog__fields">
-            <label className="dialog-field"><span>用户名</span><input value={editingMember.username ?? ''} onChange={(event) => setEditingMember({ ...editingMember, username: event.target.value })} placeholder="请输入用户名" autoFocus required /></label>
-            <label className="dialog-field"><span>昵称</span><input value={editingMember.name} onChange={(event) => setEditingMember({ ...editingMember, name: event.target.value })} placeholder="请输入昵称" required /></label>
-            <label className="dialog-field"><span>邮箱</span><input type="email" value={editingMember.email} onChange={(event) => setEditingMember({ ...editingMember, email: event.target.value })} placeholder="请输入邮箱" required /></label>
-            <label className="dialog-field"><span>员工编号</span><input value={editingMember.employeeId ?? ''} onChange={(event) => setEditingMember({ ...editingMember, employeeId: event.target.value })} placeholder="选填" /></label>
-            <label className="dialog-field"><span>联系电话</span><input type="tel" value={editingMember.phone} onChange={(event) => setEditingMember({ ...editingMember, phone: event.target.value })} placeholder="请输入联系电话" required /></label>
-            <label className="dialog-field"><span>初始密码</span><input type="password" autoComplete="new-password" value={editingMember.initialPassword ?? ''} onChange={(event) => setEditingMember({ ...editingMember, initialPassword: event.target.value })} placeholder="请输入初始密码" required /></label>
-            <label className="dialog-field platform-user-dialog__full"><span>组织角色</span><select value={editingMember.organizationRole === '普通员工' ? '普通成员' : editingMember.organizationRole} disabled={activeMemberCreationTab.fixedRole} onChange={(event) => setEditingMember({ ...editingMember, organizationRole: toTeamOrganizationRole(event.target.value) })}>{activeMemberCreationTab.roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}</select>{activeMemberCreationTab.fixedRole ? <small>小组长入口创建的账号固定为普通成员。</small> : null}</label>
-          </div>
-        </> : <>
-          <label className="dialog-field"><span>姓名</span><input value={editingMember.name} onChange={(event) => setEditingMember({ ...editingMember, name: event.target.value })} required /></label>
-          <label className="dialog-field"><span>邮箱</span><input value={editingMember.email} onChange={(event) => setEditingMember({ ...editingMember, email: event.target.value })} required /></label>
-          <label className="dialog-field"><span>手机号</span><input value={editingMember.phone} onChange={(event) => setEditingMember({ ...editingMember, phone: event.target.value })} /></label>
-          <label className="dialog-field"><span>公司 / 部门 / 岗位</span><input value={editingMember.orgInfo} onChange={(event) => setEditingMember({ ...editingMember, orgInfo: event.target.value })} /></label>
-        </>}
-        <footer><button className="secondary-action" type="button" onClick={() => { setEditingMember(null); setShowMemberCreationTabs(false) }}>取消</button><button className="primary-action" type="submit">{showMemberCreationTabs ? '创建成员' : '保存'}</button></footer>
+    {editingMember ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && (setEditingMember(null), setMemberDialogMode(null))}>
+      <form className="ledger-dialog platform-user-dialog team-member-dialog" role="dialog" aria-modal="true" aria-labelledby="team-member-dialog-title" onSubmit={(event) => { event.preventDefault(); saveMember() }}>
+        <header><div><span className="eyebrow">team_member</span><h3 id="team-member-dialog-title">{memberDialogMode === 'edit' ? '编辑成员' : operatorRole === 'group-leader' ? '创建小组成员' : '创建成员'}</h3></div><button type="button" className="dialog-close" aria-label="关闭弹窗" onClick={() => { setEditingMember(null); setMemberDialogMode(null) }}>×</button></header>
+        <div className="platform-user-dialog__fields">
+          <label className="dialog-field"><span>用户名</span><input value={editingMember.username ?? ''} onChange={(event) => setEditingMember({ ...editingMember, username: event.target.value })} placeholder="请输入用户名" autoFocus required /></label>
+          <label className="dialog-field"><span>昵称</span><input value={editingMember.name} onChange={(event) => setEditingMember({ ...editingMember, name: event.target.value })} placeholder="请输入昵称" required /></label>
+          <label className="dialog-field"><span>邮箱</span><input type="email" value={editingMember.email} onChange={(event) => setEditingMember({ ...editingMember, email: event.target.value })} placeholder="请输入邮箱" required /></label>
+          <label className="dialog-field"><span>员工编号</span><input value={editingMember.employeeId ?? ''} onChange={(event) => setEditingMember({ ...editingMember, employeeId: event.target.value })} placeholder="选填" /></label>
+          <label className="dialog-field"><span>联系电话</span><input type="tel" value={editingMember.phone} onChange={(event) => setEditingMember({ ...editingMember, phone: event.target.value })} placeholder="请输入联系电话" required /></label>
+          {memberDialogMode !== 'edit' ? <label className="dialog-field"><span>初始密码</span><input type="password" autoComplete="new-password" value={editingMember.initialPassword ?? ''} onChange={(event) => setEditingMember({ ...editingMember, initialPassword: event.target.value })} placeholder="请输入初始密码" required /></label> : <label className="dialog-field"><span>公司 / 部门 / 岗位</span><input value={editingMember.orgInfo} onChange={(event) => setEditingMember({ ...editingMember, orgInfo: event.target.value })} placeholder="选填" /></label>}
+          <label className="dialog-field platform-user-dialog__full"><span>业务角色</span><select value={editingMember.businessRole} onChange={(event) => setEditingMember({ ...editingMember, businessRole: event.target.value })} required><option value="" disabled>请选择业务角色</option>{businessRoles.map((role) => <option key={role} value={role}>{role}</option>)}</select><small>业务角色为必填项，实际功能范围仍受小组开通模块限制。</small></label>
+          {operatorRole === 'group-leader' ? <div className="dialog-field platform-user-dialog__full"><span>所属小组</span><p className="team-member-dialog__fixed-value">{leaderGroup?.name ?? '当前小组'} · 组员（创建后不可在此处修改）</p></div> : <>
+            <label className="dialog-field platform-user-dialog__full platform-user-dialog__choice"><span>分配商户管理员</span><div><button type="button" className={editingMember.merchantAdmin ? 'active' : ''} onClick={() => setEditingMember({ ...editingMember, merchantAdmin: true })}>是</button><button type="button" className={!editingMember.merchantAdmin ? 'active' : ''} onClick={() => setEditingMember({ ...editingMember, merchantAdmin: false })}>否</button></div></label>
+            <label className="dialog-field platform-user-dialog__full platform-user-dialog__choice"><span>分配小组</span><div><button type="button" className={groupAssignmentRequested ? 'active' : ''} onClick={() => { setGroupAssignmentRequested(true); if (groups.length) setEditingMember({ ...editingMember, group: groups[0].name, groupRole: 'member' }) }}>是</button><button type="button" className={!groupAssignmentRequested ? 'active' : ''} onClick={() => { setGroupAssignmentRequested(false); setEditingMember({ ...editingMember, group: '', groupRole: 'none' }) }}>否</button></div></label>
+            {groupAssignmentRequested && groups.length === 0 ? <p className="team-member-dialog__notice">当前商户团队中没有小组，请到小组管理中进行创建。</p> : groupAssignmentRequested && editingMember.group ? <><label className="dialog-field"><span>小组名称</span><select value={editingMember.group} onChange={(event) => setEditingMember({ ...editingMember, group: event.target.value })}>{groups.map((group) => <option key={group.id} value={group.name}>{group.name}</option>)}</select></label><label className="dialog-field"><span>小组角色</span><select value={editingMember.groupRole} onChange={(event) => setEditingMember({ ...editingMember, groupRole: event.target.value as TeamMemberRecord['groupRole'] })}><option value="leader">小组长</option><option value="member">组员</option></select></label></> : null}
+          </>}
+        </div>
+        <footer><button className="secondary-action" type="button" onClick={() => { setEditingMember(null); setMemberDialogMode(null) }}>取消</button><button className="primary-action" type="submit">{memberDialogMode === 'edit' ? '保存' : '创建成员'}</button></footer>
       </form>
+    </div> : null}
+    {memberDialogMode === 'invite' ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setMemberDialogMode(null)}>
+      <form className="ledger-dialog platform-user-dialog team-invite-dialog" role="dialog" aria-modal="true" aria-labelledby="team-invite-dialog-title" onSubmit={(event) => { event.preventDefault(); saveInvitation() }}>
+        <header><div><span className="eyebrow">invite_existing_user</span><h3 id="team-invite-dialog-title">邀请已有用户</h3></div><button className="dialog-close" type="button" aria-label="关闭邀请弹窗" onClick={() => setMemberDialogMode(null)}>×</button></header>
+        <div className="platform-user-dialog__fields">
+          {inviteTargetGroupName ? <div className="team-member-dialog__notice platform-user-dialog__full">将邀请账号直接加入「{inviteTargetGroupName}」，并固定为组员。</div> : null}
+          <label className="dialog-field platform-user-dialog__full"><span>用户邮箱</span><input type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="请输入完整邮箱地址" autoFocus required /><small>仅支持完整邮箱精确匹配，不提供模糊搜索。</small></label>
+          {inviteEmail ? matchedInvitee ? <div className="team-invite-dialog__result platform-user-dialog__full"><strong>{matchedInvitee.name}</strong><span>{matchedInvitee.email}</span><small>{members.some((member) => member.email === matchedInvitee.email) ? '该账号已在当前团队，可继续为其补充小组归属。' : '已找到全局账号，可邀请加入当前团队。'}</small></div> : <p className="team-member-dialog__notice platform-user-dialog__full">未找到完全匹配的全局账号，请检查邮箱地址。</p> : null}
+          <label className="dialog-field platform-user-dialog__full"><span>业务角色</span><select value={inviteBusinessRole} onChange={(event) => setInviteBusinessRole(event.target.value)} required disabled={!matchedInvitee}><option value="" disabled>请选择业务角色</option>{businessRoles.map((role) => <option key={role}>{role}</option>)}</select></label>
+          {inviteTargetGroupName || operatorRole === 'group-leader' ? <div className="dialog-field platform-user-dialog__full"><span>加入范围</span><p className="team-member-dialog__fixed-value">{inviteTargetGroupName ?? leaderGroup?.name ?? '当前小组'} · 组员</p></div> : <label className="dialog-field platform-user-dialog__full platform-user-dialog__choice"><span>组织角色</span><div><button type="button" className={!inviteMerchantAdmin ? 'active' : ''} onClick={() => setInviteMerchantAdmin(false)}>普通成员</button><button type="button" className={inviteMerchantAdmin ? 'active' : ''} onClick={() => setInviteMerchantAdmin(true)}>商户管理员</button></div></label>}
+        </div>
+        <footer><button className="secondary-action" type="button" onClick={() => { setMemberDialogMode(null); setInviteTargetGroupName(null) }}>取消</button><button className="primary-action" type="submit" disabled={!matchedInvitee || !inviteBusinessRole}>确认邀请</button></footer>
+      </form>
+    </div> : null}
+    {managingGroup ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setManagingGroup(null)}>
+      <section className="ledger-dialog group-member-manager" role="dialog" aria-modal="true" aria-labelledby="group-member-manager-title">
+        <header><div><span className="eyebrow">group_members</span><h3 id="group-member-manager-title">{managingGroup.name}成员管理</h3></div><button type="button" className="dialog-close" aria-label="关闭成员管理弹窗" onClick={() => setManagingGroup(null)}>×</button></header>
+        <div className="group-member-manager__body">
+          <section className="group-member-manager__join"><label className="dialog-field"><span>加入成员</span><select value={joiningMemberId} onChange={(event) => setJoiningMemberId(event.target.value)}><option value="">选择当前团队成员</option>{members.filter((member) => member.group !== managingGroup.name).map((member) => <option key={member.id} value={member.id}>{member.name} · {member.email}{member.group ? `（当前：${member.group}）` : ''}</option>)}</select></label><label className="dialog-field"><span>小组身份</span><select value={joiningGroupRole} onChange={(event) => setJoiningGroupRole(event.target.value as 'leader' | 'member')}><option value="member">组员</option><option value="leader">小组长</option></select></label><button type="button" className="primary-action" disabled={!joiningMemberId} onClick={addMemberToGroup}>加入</button></section>
+          <section className="group-member-manager__summary"><div><strong>{members.filter((member) => member.group === managingGroup.name).length} 位成员</strong><small>小组余额 {managingGroup.balance} 豌豆</small></div><button type="button" className="secondary-action" onClick={() => { setInviteTargetGroupName(managingGroup.name); setInviteEmail(''); setInviteBusinessRole(''); setInviteMerchantAdmin(false); setManagingGroup(null); setMemberDialogMode('invite') }}><UserRoundPlus aria-hidden="true" />邀请新成员</button></section>
+          <div className="group-member-manager__table-wrap"><table><thead><tr><th>成员</th><th>业务角色</th><th>身份</th><th>豌豆余额</th><th>操作</th></tr></thead><tbody>{members.filter((member) => member.group === managingGroup.name).map((member) => <tr key={member.id}><td><div className="team-member-cell"><span>{member.avatar}</span><div><strong>{member.name}</strong><small>{member.email}</small></div></div></td><td>{member.businessRole || '—'}</td><td><span className={`data-pill ${member.groupRole === 'leader' ? 'warning' : 'normal'}`}>{member.groupRole === 'leader' ? '小组长' : '组员'}</span></td><td>{member.peaBalance}</td><td><div className="row-actions">{member.groupRole === 'leader' ? <button type="button" className="table-action" onClick={() => setMemberGroupRole(managingGroup, member, 'member')}>设为组员</button> : <button type="button" className="table-action" onClick={() => setMemberGroupRole(managingGroup, member, 'leader')}>设为组长</button>}<button type="button" className="icon-btn-sm danger" title="移出小组" aria-label={`移出${member.name}`} onClick={() => removeMemberFromGroup(managingGroup, member)}><Trash2 aria-hidden="true" /></button></div></td></tr>)}{members.every((member) => member.group !== managingGroup.name) ? <tr><td colSpan={5} className="empty-table-cell">暂无成员</td></tr> : null}</tbody></table></div>
+        </div>
+        <footer><button type="button" className="secondary-action" onClick={() => setManagingGroup(null)}>完成</button></footer>
+      </section>
     </div> : null}
     {permissionMember ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setPermissionMember(null)}><form className="ledger-dialog create-task-dialog" onSubmit={(event) => { event.preventDefault(); savePermission() }}><header><div><span className="eyebrow">member_permissions</span><h3>成员角色配置</h3></div><button type="button" className="dialog-close" onClick={() => setPermissionMember(null)}>×</button></header><label className="dialog-field"><span>组织角色</span><select value={permissionMember.organizationRole} onChange={(event) => setPermissionMember({ ...permissionMember, organizationRole: event.target.value as TeamMemberRecord['organizationRole'] })}><option>商户管理员</option><option>小组长</option><option>普通员工</option></select></label><label className="dialog-field"><span>所属小组</span><select value={permissionMember.group} onChange={(event) => setPermissionMember({ ...permissionMember, group: event.target.value })}><option value="">暂不分组</option>{groups.map((group) => <option key={group.id} value={group.name}>{group.name}</option>)}</select></label>{permissionMember.organizationRole === '小组长' ? <p className="review-original-note">当前组长：{groupLeader}</p> : null}<label className="dialog-field"><span>业务角色</span><select value={permissionMember.businessRole} onChange={(event) => setPermissionMember({ ...permissionMember, businessRole: event.target.value as TeamMemberRecord['businessRole'] })}>{businessRoles.map((role) => <option key={role}>{role}</option>)}</select></label><div className="dialog-field"><span>小组可见模块</span><p className="review-original-note">{groups.find((group) => group.name === permissionMember.group)?.modules.join('、') || '请先选择所属小组。'} 由小组配置统一决定，成员不能单独增配模块。</p></div><footer><button className="secondary-action" type="button" onClick={() => setPermissionMember(null)}>取消</button><button className="primary-action" type="submit">保存权限</button></footer></form></div> : null}
     {editingOrganizationPermission ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setEditingOrganizationPermission(null)}><form className="ledger-dialog create-task-dialog permission-dialog" onSubmit={(event) => { event.preventDefault(); setOrganizationPermissions((rows) => rows.map((row) => row.role === editingOrganizationPermission.role ? editingOrganizationPermission : row)); setEditingOrganizationPermission(null) }}><header><div><span className="eyebrow">manager_operations</span><h3>配置{editingOrganizationPermission.role}管理操作</h3></div><button type="button" className="dialog-close" onClick={() => setEditingOrganizationPermission(null)}>×</button></header><div className="dialog-field"><span>小组管理操作</span><PermissionTree nodes={managerGroupOperationTree} selectedIds={new Set(editingOrganizationPermission.actions)} onSelectedIdsChange={(actions) => setEditingOrganizationPermission({ ...editingOrganizationPermission, actions: [...actions] })} defaultExpandedIds={['manager-group-members', 'manager-group-roles', 'manager-group-workspace']} /></div><footer><button className="secondary-action" type="button" onClick={() => setEditingOrganizationPermission(null)}>取消</button><button className="primary-action" type="submit">保存权限</button></footer></form></div> : null}
@@ -496,13 +627,20 @@ function TeamDetailPage({ team, onBack, supportedPlatforms }: { team: Team; onBa
     {editingBusinessRole !== null ? <BusinessPermissionDialog
       role={editingBusinessRole}
       businessRoles={businessRoles}
+      groups={groups}
+      selectedGroupIds={businessRoleGroupIds[editingBusinessRole] ?? []}
       onClose={() => setEditingBusinessRole(null)}
-      onSave={(name) => {
+      onSave={(name, groupIds) => {
         const normalizedName = name.trim()
         if (normalizedName) {
           setBusinessRoles((roles) => roles.includes(editingBusinessRole)
             ? roles.map((item) => item === editingBusinessRole ? normalizedName : item)
             : roles.includes(normalizedName) ? roles : [...roles, normalizedName])
+          setBusinessRoleGroupIds((current) => {
+            const next = { ...current, [normalizedName]: groupIds }
+            if (normalizedName !== editingBusinessRole) delete next[editingBusinessRole]
+            return next
+          })
         }
         setEditingBusinessRole(null)
       }}
