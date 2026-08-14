@@ -84,6 +84,13 @@ interface DailyDataField {
   valueType?: 'amount' | 'ratio'
 }
 
+interface ManualUploadRequirement {
+  id: string
+  label: string
+  description: string
+  multiple?: boolean
+}
+
 const taskColumns = ['任务 ID', '任务来源', '平台', '店铺', '任务日期', '业务日期', '豌豆消耗', '归属人员', '审核人', '结果预览', '任务结果', '日报状态', '修改', '任务日志', '操作项']
 const dailyDataFieldsByPlatform: Record<LedgerPlatform, DailyDataField[]> = {
   快手: [
@@ -227,6 +234,20 @@ const taskRows: DailyTaskRecord[] = [
 ]
 
 const ledgerPlatforms: LedgerPlatform[] = ['快手', '抖店', '唯品会', '爱库存', '好衣库', '得物']
+const manualUploadRequirements: Record<LedgerPlatform, ManualUploadRequirement[]> = {
+  快手: [
+    { id: 'kuaishou-bill-detail', label: '账单明细表', description: '请上传与当前业务日期一致的账单明细。' },
+    { id: 'kuaishou-settlement-detail', label: '结算明细表', description: '请上传与当前业务日期一致的结算明细。' },
+  ],
+  好衣库: [{ id: 'haoyiku-payment-daily', label: '好衣库货款日明细表', description: '请上传当前业务日期对应的货款日明细。' }],
+  抖店: [{ id: 'douyin-fund-daily-summary', label: '资金账单日汇总报表', description: '请上传当前业务日期对应的资金账单日汇总。' }],
+  爱库存: [{ id: 'aikucun-daily-template', label: '爱库存店铺日报模板表', description: '请上传当前业务日期对应的店铺日报模板。' }],
+  唯品会: [
+    { id: 'vip-product-new', label: '产品上新统计表', description: '上传每日最新版本，系统将读取 D 列品牌款号。' },
+    { id: 'vip-product-detail', label: '商品明细-货号力度-跨天不去重', description: '支持上传多个明细表，至少需要一份有效文件。', multiple: true },
+  ],
+  得物: [{ id: 'dewu-daily-report', label: '得物店铺日报表', description: '请上传当前业务日期对应的日报表。' }],
+}
 
 function uniqueValues(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)))
@@ -453,7 +474,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
   const [previewTask, setPreviewTask] = useState<DailyTaskRecord | null>(null)
   const [logTask, setLogTask] = useState<DailyTaskRecord | null>(null)
   const [reviewingTaskId, setReviewingTaskId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [manualUploadFiles, setManualUploadFiles] = useState<Record<string, File[]>>({})
   const [uploadStoreName, setUploadStoreName] = useState('')
   const [uploadPlatformName, setUploadPlatformName] = useState<LedgerPlatform>('快手')
   const [uploadTargetTaskId, setUploadTargetTaskId] = useState<string | null>(null)
@@ -487,6 +508,9 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
   const batchSourceRecords = batchSourceCandidates
     .filter((task) => !resolvedBatchSourceStartDate || !resolvedBatchSourceEndDate || (task.businessDate >= resolvedBatchSourceStartDate && task.businessDate <= resolvedBatchSourceEndDate))
     .slice(0, 10)
+  const uploadTargetTask = tasks.find((task) => task.taskId === uploadTargetTaskId) ?? null
+  const uploadRequirements = manualUploadRequirements[uploadPlatformName]
+  const isManualUploadComplete = uploadRequirements.every((requirement) => (manualUploadFiles[requirement.id] ?? []).length > 0)
 
   // 报告统计
   const totalTaskCount = tasks.length
@@ -510,9 +534,11 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
     .filter((row) => !dailyStartDate || row.businessDate >= dailyStartDate)
     .filter((row) => !dailyEndDate || row.businessDate <= dailyEndDate)
     .sort((left, right) => right.businessDate.localeCompare(left.businessDate))
+  const dailyDetailRecord = (dailyEndDate ? visibleDailyData.find((row) => row.businessDate === dailyEndDate) : undefined) ?? visibleDailyData[0]
+  const dailyDetailTask = dailyDetailRecord ? tasks.find((task) => task.taskId === dailyDetailRecord.taskId) ?? null : null
   const reviewingTask = tasks.find((task) => task.taskId === reviewingTaskId) ?? null
   const dailyDataFields = dailyDataFieldsByPlatform[dailyPlatform]
-  const dailyDataColumns = ['业务日期', '平台名称', '店铺名称', ...dailyDataFields.map((field) => field.label), '查看明细', '操作项']
+  const dailyDataColumns = ['业务日期', '平台名称', '店铺名称', ...dailyDataFields.map((field) => field.label), '操作项']
 
   function openDailyDataFill(row: DailyDataRecord) {
     const fields = dailyDataFieldsByPlatform[row.platform]
@@ -614,16 +640,16 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
   function openManualUpload(task: DailyTaskRecord) {
     setUploadPlatformName(task.platform)
     setUploadStoreName(task.store)
-    setSelectedFile(null)
-    setUploadTargetTaskId(task.platform === '唯品会' ? task.taskId : null)
+    setManualUploadFiles({})
+    setUploadTargetTaskId(task.taskId)
     setUploadError('')
-    setManualUploadStep(task.platform === '唯品会' ? 'upload' : 'template')
+    setManualUploadStep('template')
     setIsUploadDialogOpen(true)
   }
 
-  function downloadDailyTemplate(platform: LedgerPlatform, store?: string) {
+  function downloadDailyTemplate(platform: LedgerPlatform, store?: string, businessDate = dateMinusOne()) {
     const headers = ['业务日期', '平台名称', '店铺名称', ...dailyDataFieldsByPlatform[platform].map((field) => field.label)]
-    const placeholder = [dateMinusOne(), platform, store ?? '请填写店铺名称', ...dailyDataFieldsByPlatform[platform].map(() => '')]
+    const placeholder = [businessDate, platform, store ?? '请填写店铺名称', ...dailyDataFieldsByPlatform[platform].map(() => '')]
     const csv = `\uFEFF${headers.join(',')}\n${placeholder.join(',')}\n`
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
     const anchor = document.createElement('a')
@@ -632,6 +658,21 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
     anchor.click()
     URL.revokeObjectURL(url)
     setLedgerNotice(`${platform}日报模板已下载`)
+  }
+
+  function downloadManualUploadTemplate(task: DailyTaskRecord, requirement: ManualUploadRequirement) {
+    const headers = requirement.id === 'vip-product-new'
+      ? ['业务日期', '平台名称', '店铺名称', '品牌款号']
+      : ['业务日期', '平台名称', '店铺名称', `${requirement.label}数据`]
+    const placeholder = [task.businessDate, task.platform, task.store, '']
+    const csv = `\uFEFF${headers.join(',')}\n${placeholder.join(',')}\n`
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${task.platform}-${task.store}-${task.businessDate}-${requirement.label}模板.csv`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    setLedgerNotice(`已下载${requirement.label}模板`)
   }
 
   function downloadSourceTables(records: DailyTaskRecord[], isBatch = false) {
@@ -681,82 +722,50 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
 
   async function submitManualUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!selectedFile || !uploadStoreName.trim()) return
+    if (!uploadTargetTask || !isManualUploadComplete) return
     setUploadError('')
-
-    if (uploadPlatformName === '唯品会') {
-      if (!uploadTargetTaskId) {
-        setUploadError('未找到对应的唯品会待执行任务，请刷新后重试。')
-        return
-      }
-      if (!/\.(xlsx|xls)$/i.test(selectedFile.name)) {
-        setUploadError('请上传 Excel 格式的产品上新统计表（.xlsx 或 .xls）。')
-        return
-      }
-      try {
-        const workbook = XLSX.read(await selectedFile.arrayBuffer(), { type: 'array' })
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-        const sheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as unknown[][]
-        const brandSkuCodes = sheetRows
-          .slice(1)
-          .map((row) => String(row[3] ?? '').trim())
-          .filter(Boolean)
-        if (!brandSkuCodes.length) {
-          setUploadError('未识别到 D 列品牌款号，请检查产品上新统计表格式。')
-          return
-        }
-        setTasks((rows) => rows.map((row) => row.taskId === uploadTargetTaskId ? {
-          ...row,
-          fileName: selectedFile.name,
-          source: '人工上传',
-          resultPreview: '任务完成',
-          taskResult: '完成',
-          reportStatus: '待发布',
-          taskLog: `已上传产品上新统计表，提取 D 列品牌款号 ${brandSkuCodes.length} 个；自动化处理完成，等待发布。`,
-          metrics: { gmv: 57911.59, platformFee: 1501.65, managementFee: 0 },
-          peaCost: 450,
-          owner: '王财务',
-          reviewer: '',
-          brandSkuCount: brandSkuCodes.length,
-        } : row))
-        setTaskPlatform('唯品会')
-        setTaskStore(uploadStoreName.trim())
-        setSelectedFile(null)
-        setUploadTargetTaskId(null)
-        setIsUploadDialogOpen(false)
-        setLedgerNotice(`已解析 ${brandSkuCodes.length} 个品牌款号，唯品会自动化任务已完成，等待发布`)
-      } catch {
-        setUploadError('文件解析失败，请确认上传的是未损坏的产品上新统计表。')
-      }
+    const files = Object.values(manualUploadFiles).flat()
+    if (files.some((file) => !/\.(xlsx|xls)$/i.test(file.name))) {
+      setUploadError('请上传 Excel 格式文件（.xlsx 或 .xls）。')
       return
     }
 
-    const record: DailyTaskRecord = {
-      id: `task-${Date.now()}`,
-      taskId: makeTaskId(uploadPlatformName, uploadStoreName.trim(), tasks),
-      fileName: selectedFile.name,
-      source: '人工上传文件',
-      platform: uploadPlatformName,
-      store: uploadStoreName.trim(),
-      taskDate: new Date().toLocaleString('zh-CN', { hour12: false }).replaceAll('/', '-'),
-      businessDate: dateMinusOne(),
-      resultPreview: '任务完成',
+    let brandSkuCount: number | undefined
+    if (uploadPlatformName === '唯品会') {
+      const productNewFile = manualUploadFiles['vip-product-new']?.[0]
+      if (!productNewFile) return
+      try {
+        const workbook = XLSX.read(await productNewFile.arrayBuffer(), { type: 'array' })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        const sheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as unknown[][]
+        brandSkuCount = sheetRows.slice(1).map((row) => String(row[3] ?? '').trim()).filter(Boolean).length
+        if (!brandSkuCount) {
+          setUploadError('未识别到产品上新统计表 D 列的品牌款号，请检查文件格式。')
+          return
+        }
+      } catch {
+        setUploadError('产品上新统计表解析失败，请确认文件未损坏。')
+        return
+      }
+    }
+
+    const requirementSummary = uploadRequirements.map((requirement) => `${requirement.label} ${manualUploadFiles[requirement.id].length} 份`).join('；')
+    setTasks((rows) => rows.map((row) => row.taskId === uploadTargetTask.taskId ? {
+      ...row,
+      fileName: files.map((file) => file.name).join('、'),
+      source: '人工上传',
+      resultPreview: '资料已提交',
       taskResult: '完成',
       reportStatus: '待发布',
-      taskLog: '人工上传文件完成，等待发布。',
-      isUnbound: false,
-      metrics: { gmv: 0, platformFee: 0, managementFee: 0 },
-      peaCost: 0,
-      owner: '李运营',
-      reviewer: '',
-    }
-    setTasks((rows) => [record, ...rows])
-    setTaskPlatform(uploadPlatformName)
-    setTaskStore(uploadStoreName.trim())
-    setSelectedFile(null)
-    setUploadStoreName('')
+      taskLog: `已按业务日期 ${row.businessDate} 提交人工资料：${requirementSummary}。文件日期与模板校验将由服务端处理。`,
+      brandSkuCount,
+    } : row))
+    setTaskPlatform(uploadTargetTask.platform)
+    setTaskStore(uploadTargetTask.store)
+    setManualUploadFiles({})
+    setUploadTargetTaskId(null)
     setIsUploadDialogOpen(false)
-    setLedgerNotice('人工上传任务已创建，待发布')
+    setLedgerNotice(`已提交 ${files.length} 份资料，已绑定任务 ${uploadTargetTask.taskId}`)
   }
 
   return (
@@ -874,7 +883,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
 
       <section className="ledger-advanced-filters" aria-label="高级筛选">
         <span className="ledger-advanced-filters__label">{dataTab === 'tasks' ? '任务筛选' : '日期筛选'}</span>
-        {dataTab === 'tasks' ? <><label className="store-filter date-range-filter"><span>任务日期</span><input type="date" value={taskStartDate} onChange={(event) => setTaskStartDate(event.target.value)} /><b>至</b><input type="date" value={taskEndDate} onChange={(event) => setTaskEndDate(event.target.value)} /></label><label className="store-filter"><span>来源</span><select value={taskSourceFilter} onChange={(event) => setTaskSourceFilter(event.target.value as '全部' | TaskSource)}><option value="全部">全部</option><option value="定时任务">定时任务</option><option value="指令">指令</option><option value="人工上传">人工上传</option><option value="人工上传文件">人工上传文件</option></select></label><label className="store-filter"><span>归属人</span><select value={taskOwnerFilter} onChange={(event) => setTaskOwnerFilter(event.target.value)}><option value="全部">全部</option>{taskOwners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label><label className="store-filter"><span>审核人</span><select value={taskReviewerFilter} onChange={(event) => setTaskReviewerFilter(event.target.value)}><option value="全部">全部</option>{taskReviewers.map((reviewer) => <option key={reviewer} value={reviewer}>{reviewer}</option>)}</select></label><label className="store-filter"><span>任务结果</span><select value={taskResultFilter} onChange={(event) => setTaskResultFilter(event.target.value as '全部' | TaskResult)}><option value="全部">全部</option><option value="完成">完成</option><option value="失败">失败</option></select></label><label className="store-filter"><span>日报状态</span><select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value as '全部' | DailyReportStatus)}><option value="全部">全部</option><option value="待发布">待发布</option><option value="已发布">已发布</option><option value="未发布">未发布</option></select></label></> : <label className="store-filter date-range-filter"><span>业务日期</span><input type="date" max={dateMinusOne()} value={dailyStartDate} onChange={(event) => setDailyStartDate(event.target.value)} /><b>至</b><input type="date" max={dateMinusOne()} value={dailyEndDate} onChange={(event) => setDailyEndDate(event.target.value)} /></label>}
+        {dataTab === 'tasks' ? <><label className="store-filter date-range-filter"><span>任务日期</span><input type="date" value={taskStartDate} onChange={(event) => setTaskStartDate(event.target.value)} /><b>至</b><input type="date" value={taskEndDate} onChange={(event) => setTaskEndDate(event.target.value)} /></label><label className="store-filter"><span>来源</span><select value={taskSourceFilter} onChange={(event) => setTaskSourceFilter(event.target.value as '全部' | TaskSource)}><option value="全部">全部</option><option value="定时任务">定时任务</option><option value="指令">指令</option><option value="人工上传">人工上传</option><option value="人工上传文件">人工上传文件</option></select></label><label className="store-filter"><span>归属人</span><select value={taskOwnerFilter} onChange={(event) => setTaskOwnerFilter(event.target.value)}><option value="全部">全部</option>{taskOwners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label><label className="store-filter"><span>审核人</span><select value={taskReviewerFilter} onChange={(event) => setTaskReviewerFilter(event.target.value)}><option value="全部">全部</option>{taskReviewers.map((reviewer) => <option key={reviewer} value={reviewer}>{reviewer}</option>)}</select></label><label className="store-filter"><span>任务结果</span><select value={taskResultFilter} onChange={(event) => setTaskResultFilter(event.target.value as '全部' | TaskResult)}><option value="全部">全部</option><option value="完成">完成</option><option value="失败">失败</option></select></label><label className="store-filter"><span>日报状态</span><select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value as '全部' | DailyReportStatus)}><option value="全部">全部</option><option value="待发布">待发布</option><option value="已发布">已发布</option><option value="未发布">未发布</option></select></label></> : <div className="daily-detail-filter"><label className="store-filter date-range-filter"><span>业务日期</span><input type="date" max={dateMinusOne()} value={dailyStartDate} onChange={(event) => setDailyStartDate(event.target.value)} /><b>至</b><input type="date" max={dateMinusOne()} value={dailyEndDate} onChange={(event) => setDailyEndDate(event.target.value)} /></label><button className="secondary-action" type="button" disabled={!dailyDetailTask} onClick={() => setPreviewTask(dailyDetailTask)}><Eye aria-hidden="true" />查看明细</button></div>}
       </section>
 
       <article className={`data-table-card upload-record-card task-record-card ${dataTab === 'dailyData' ? 'daily-data-table' : ''}`} data-prd-anchor="tasks-ledger">
@@ -966,7 +975,6 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
                       {dailyDataFields.map((field) => (
                         <td key={field.key}>{formatDailyDataValue(row[field.key], field.valueType)}</td>
                       ))}
-                      <td><button className="preview-link" type="button" onClick={() => setPreviewTask(tasks.find((task) => task.taskId === row.taskId) ?? null)}><Eye aria-hidden="true" />查看明细</button></td>
                       <td><button className="table-action" type="button" onClick={() => openDailyDataFill(row)}><Pencil aria-hidden="true" />手动填写</button></td>
                     </tr>
                   ))}
@@ -1087,23 +1095,48 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
 
       {isUploadDialogOpen ? (
         <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setIsUploadDialogOpen(false)}>
-          <form className="ledger-dialog manual-upload-dialog" onSubmit={submitManualUpload}>
+          <form className="ledger-dialog manual-upload-dialog manual-upload-dialog--requirements" onSubmit={submitManualUpload}>
             <header>
               <div>
                 <span className="eyebrow">manual_import</span>
-                <h3>{uploadPlatformName === '唯品会' ? '上传产品上新统计表' : '人工上传任务'}</h3>
+                <h3>人工上传日报资料</h3>
               </div>
               <button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setIsUploadDialogOpen(false)}>×</button>
             </header>
-            {uploadPlatformName !== '唯品会' ? <div className="manual-upload-mode" role="tablist" aria-label="人工上传方式">
-              <button type="button" role="tab" aria-selected={manualUploadStep === 'template'} className={manualUploadStep === 'template' ? 'active' : ''} onClick={() => setManualUploadStep('template')}><Download aria-hidden="true" />下载模板</button>
-              <button type="button" role="tab" aria-selected={manualUploadStep === 'upload'} className={manualUploadStep === 'upload' ? 'active' : ''} onClick={() => setManualUploadStep('upload')}><Upload aria-hidden="true" />上传文件</button>
-            </div> : null}
-            <div className="dialog-meta"><span>平台：{uploadPlatformName}</span><span>店铺：{uploadStoreName}</span><span>业务日期：{dateMinusOne()}</span></div>
-            {uploadPlatformName === '唯品会' ? <><section className="vip-upload-requirement"><FileSpreadsheet aria-hidden="true" /><div><strong>上传前一天更新的产品上新统计表</strong><small>仅支持 .xlsx / .xls 文件；系统只解析 D 列的品牌款号，并以解析结果触发自动化任务。</small></div></section><label className="dialog-field"><span>产品上新统计表</span><span className="file-picker"><FileSpreadsheet aria-hidden="true" /><strong>{selectedFile?.name ?? '选择 .xlsx / .xls 文件'}</strong><input type="file" accept=".xlsx,.xls" required onChange={(event) => { setSelectedFile(event.target.files?.[0] ?? null); setUploadError('') }} /></span></label>{uploadError ? <p className="dialog-field-hint">{uploadError}</p> : null}</> : manualUploadStep === 'template' ? <section className="manual-upload-template"><FileSpreadsheet aria-hidden="true" /><div><strong>先下载 {uploadPlatformName} 对应模板</strong><small>模板已预填当前店铺，字段与该平台日报口径一致。</small></div><button className="primary-action" type="button" onClick={() => downloadDailyTemplate(uploadPlatformName, uploadStoreName)}><Download aria-hidden="true" />下载模板</button></section> : <><label className="dialog-field"><span>平台</span><input value={uploadPlatformName} disabled /></label><label className="dialog-field"><span>店铺名称</span><input value={uploadStoreName} disabled /></label><label className="dialog-field"><span>Excel 文件</span><span className="file-picker"><FileSpreadsheet aria-hidden="true" /><strong>{selectedFile?.name ?? '选择 .xlsx / .xls / .csv 文件'}</strong><input type="file" accept=".xlsx,.xls,.csv" required onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} /></span></label></>}
+            <div className="manual-upload-steps" role="tablist" aria-label="人工上传步骤">
+              <button type="button" role="tab" aria-selected={manualUploadStep === 'template'} className={manualUploadStep === 'template' ? 'active' : ''} onClick={() => setManualUploadStep('template')}>1 下载模板</button>
+              <button type="button" role="tab" aria-selected={manualUploadStep === 'upload'} className={manualUploadStep === 'upload' ? 'active' : ''} onClick={() => setManualUploadStep('upload')}>2 上传资料</button>
+            </div>
+            {uploadTargetTask ? <>
+              <section className="manual-upload-context" aria-label="当前任务信息">
+                <div><span>任务编号</span><strong>{uploadTargetTask.taskId}</strong></div>
+                <div><span>平台 / 店铺</span><strong>{uploadPlatformName} / {uploadStoreName}</strong></div>
+                <div><span>业务日期</span><strong>{uploadTargetTask.businessDate}</strong></div>
+              </section>
+              {manualUploadStep === 'template' ? <section className="manual-upload-template-list" aria-label="模板下载清单">
+                <header><div><strong>下载模板</strong><small>本次上传需要 {uploadRequirements.length} 份资料，对应提供 {uploadRequirements.length} 份模板。</small></div></header>
+                {uploadRequirements.map((requirement) => <article key={requirement.id} className="manual-upload-template-step">
+                  <span className="manual-upload-template-step__icon"><FileSpreadsheet aria-hidden="true" /></span>
+                  <div><strong>{requirement.label}</strong><small>{requirement.multiple ? '该资料支持多文件上传，下载一份模板后可按需复制填报。' : '模板已预填当前店铺与业务日期。'}</small></div>
+                  <button className="secondary-action" type="button" onClick={() => downloadManualUploadTemplate(uploadTargetTask, requirement)}><Download aria-hidden="true" />下载模板</button>
+                </article>)}
+              </section> : <><p className="manual-upload-dialog__notice"><AlertTriangle aria-hidden="true" />文件中的业务日期需与当前任务一致；日期、表头和文件格式将在提交后校验。</p>
+              <section className="manual-upload-list" aria-label="必传资料清单">
+                <header><div><strong>上传清单</strong><small>已完成 {uploadRequirements.filter((requirement) => (manualUploadFiles[requirement.id] ?? []).length > 0).length} / {uploadRequirements.length} 项</small></div><span>仅支持 .xlsx / .xls</span></header>
+                {uploadRequirements.map((requirement) => {
+                  const files = manualUploadFiles[requirement.id] ?? []
+                  return <article className="manual-upload-requirement" key={requirement.id}>
+                    <div className="manual-upload-requirement__head"><div><strong>{requirement.label}</strong><small>{requirement.description}</small></div><span className={`data-pill ${files.length ? 'good' : 'warning'}`}>{files.length ? `已选择 ${files.length} 份` : '待上传'}</span></div>
+                    {files.length ? <div className="manual-upload-requirement__files">{files.map((file, index) => <span key={`${file.name}-${index}`}><FileSpreadsheet aria-hidden="true" /><strong>{file.name}</strong><button type="button" aria-label={`移除 ${file.name}`} onClick={() => setManualUploadFiles((current) => ({ ...current, [requirement.id]: current[requirement.id].filter((_, fileIndex) => fileIndex !== index) }))}>移除</button></span>)}</div> : null}
+                    <label className="manual-upload-requirement__picker"><Upload aria-hidden="true" /><span>{requirement.multiple && files.length ? '继续添加文件' : '选择文件'}</span><input type="file" accept=".xlsx,.xls" multiple={requirement.multiple} onChange={(event) => { const nextFiles = Array.from(event.target.files ?? []); if (!nextFiles.length) return; setManualUploadFiles((current) => ({ ...current, [requirement.id]: requirement.multiple ? [...(current[requirement.id] ?? []), ...nextFiles] : [nextFiles[0]] })); setUploadError(''); event.currentTarget.value = '' }} /></label>
+                  </article>
+                })}
+              </section></>}
+            </> : <p className="manual-upload-dialog__notice">未找到当前任务，请关闭弹窗后重新进入。</p>}
+            {uploadError ? <p className="manual-upload-error" role="alert">{uploadError}</p> : null}
             <footer>
-              <button className="secondary-action" type="button" onClick={() => setIsUploadDialogOpen(false)}>取消</button>
-              {uploadPlatformName === '唯品会' ? <button className="primary-action" type="submit"><Upload aria-hidden="true" />解析并执行任务</button> : manualUploadStep === 'upload' ? <button className="primary-action" type="submit"><Upload aria-hidden="true" />创建任务</button> : <button className="primary-action" type="button" onClick={() => setManualUploadStep('upload')}>下一步：上传文件</button>}
+              <button className="secondary-action" type="button" onClick={() => { setIsUploadDialogOpen(false); setManualUploadFiles({}); setUploadTargetTaskId(null) }}>取消</button>
+              {manualUploadStep === 'template' ? <button className="primary-action" type="button" onClick={() => setManualUploadStep('upload')}>下一步：上传资料</button> : <button className="primary-action" type="submit" disabled={!uploadTargetTask || !isManualUploadComplete}><Upload aria-hidden="true" />提交资料并校验</button>}
             </footer>
           </form>
         </div>
