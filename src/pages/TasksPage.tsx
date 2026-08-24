@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Eye,
   FileSpreadsheet,
@@ -11,7 +13,7 @@ import {
   ScrollText,
   Upload,
 } from 'lucide-react'
-import { type PlatformName, type ReportRow, reportDataWithHaoyiku as reportData } from '../data/dailyReport'
+import { type PlatformName, reportDataWithHaoyiku as reportData } from '../data/dailyReport'
 import { formatPrecise } from '../lib/metrics'
 import * as XLSX from 'xlsx'
 
@@ -23,6 +25,8 @@ export type DataCenterView = 'task-records' | 'daily-data'
 type LedgerPlatform = Exclude<PlatformName, '总计'> | '抖店' | '得物'
 type DataPlatformFilter = '全部' | LedgerPlatform
 type DataStoreFilter = '全部' | string
+
+const LIST_PAGE_SIZE = 10
 
 interface DailyTaskRecord {
   id: string
@@ -74,6 +78,23 @@ interface DailyDataRecord {
   netProfit: number | null
   netProfitMargin: number | null
   allocatedNetProfit: number | null
+  technicalServiceFee: number | null
+  revenueShareCommission: number | null
+  platformOtherFee: number | null
+  returnShippingFee: number | null
+  transitFee: number | null
+  consumerCompensation: number | null
+  freightInsurance: number | null
+  platformServiceFee: number | null
+  allianceCommission: number | null
+  evaluationReward: number | null
+  otherDeduction: number | null
+  qianchuanPromotion: number | null
+  transactionFee: number | null
+  merchantDirect: number | null
+  superProductDeduction: number | null
+  technicalOperationServiceFee: number | null
+  expressInformationServiceFee: number | null
 }
 
 type DailyDataMetricKey = Exclude<keyof DailyDataRecord, 'taskId' | 'businessDate' | 'platform' | 'store'>
@@ -82,6 +103,8 @@ interface DailyDataField {
   key: DailyDataMetricKey
   label: string
   valueType?: 'amount' | 'ratio'
+  sourceField?: string
+  category?: string
 }
 
 interface ManualUploadRequirement {
@@ -91,36 +114,90 @@ interface ManualUploadRequirement {
   multiple?: boolean
 }
 
+interface MockPublishedTaskInput {
+  id: string
+  taskId: string
+  platform: LedgerPlatform
+  store: string
+  taskDate: string
+  businessDate: string
+  metrics: DailyTaskRecord['metrics']
+  peaCost: number
+  owner: string
+  reviewer?: string
+  source?: TaskSource
+  reviewedFields?: Record<string, number>
+  manualEditCount?: number
+  brandSkuCount?: number
+}
+
+function createMockPublishedTask(input: MockPublishedTaskInput): DailyTaskRecord {
+  return {
+    id: input.id,
+    taskId: input.taskId,
+    fileName: `${input.platform}-${input.businessDate}-日报结果.json`,
+    source: input.source ?? '定时任务',
+    platform: input.platform,
+    store: input.store,
+    taskDate: input.taskDate,
+    businessDate: input.businessDate,
+    resultPreview: '任务完成',
+    taskResult: '完成',
+    reportStatus: '已发布',
+    taskLog: `${input.taskDate.slice(11, 16)} 完成数据拉取与字段校验；日报已发布。`,
+    isUnbound: false,
+    metrics: input.metrics,
+    reviewedFields: input.reviewedFields,
+    manualEditCount: input.manualEditCount,
+    peaCost: input.peaCost,
+    owner: input.owner,
+    reviewer: input.reviewer ?? '王财务',
+    brandSkuCount: input.brandSkuCount,
+  }
+}
+
 const taskColumns = ['任务 ID', '任务来源', '平台', '店铺', '任务日期', '业务日期', '豌豆消耗', '归属人员', '审核人', '结果预览', '任务结果', '日报状态', '修改', '任务日志', '操作项']
 const dailyDataFieldsByPlatform: Record<LedgerPlatform, DailyDataField[]> = {
   快手: [
-    { key: 'gmv', label: '平台成交GMV' }, { key: 'actualRevenue', label: '实发收入' }, { key: 'refundAmount', label: '退货金额' },
-    { key: 'platformFee', label: '平台费用' }, { key: 'promotionFee', label: '推广费' }, { key: 'shippingFee', label: '运费' },
-    { key: 'managementFee', label: '后台管理费' }, { key: 'otherExpense', label: '其他费用支出' }, { key: 'taxes', label: '税金及附加' },
-    { key: 'netProfit', label: '净利润' }, { key: 'netProfitMargin', label: '净利润率', valueType: 'ratio' }, { key: 'allocatedNetProfit', label: '公摊后净利润' },
+    { key: 'gmv', label: '平台成交GMV', category: '销售' },
+    { key: 'technicalServiceFee', label: '技术服务费', category: '平台费用' },
+    { key: 'revenueShareCommission', label: '分账佣金', category: '平台费用' },
+    { key: 'platformOtherFee', label: '其他费用', category: '平台费用' },
+    { key: 'returnShippingFee', label: '退货补运费', category: '平台费用' },
+    { key: 'transitFee', label: '集运扣款（中转费）', category: '平台费用' },
+    { key: 'consumerCompensation', label: '消费者赔付', category: '平台费用' },
+    { key: 'managementFee', label: '后台管理费', category: '管理费用' },
   ],
   抖店: [
-    { key: 'gmv', label: '平台成交GMV' }, { key: 'salesRevenue', label: '销售收入' }, { key: 'actualRevenue', label: '实发收入' },
-    { key: 'refundAmount', label: '退货金额' }, { key: 'platformFee', label: '平台费用' }, { key: 'promotionFee', label: '推广费' },
-    { key: 'shippingFee', label: '运费' }, { key: 'netProfit', label: '净利润' }, { key: 'netProfitMargin', label: '净利润率', valueType: 'ratio' },
+    { key: 'gmv', label: '平台成交GMV', category: '销售' },
+    { key: 'freightInsurance', label: '运费险', category: '平台费用' },
+    { key: 'consumerCompensation', label: '消费者赔付', category: '平台费用' },
+    { key: 'platformServiceFee', label: '平台服务费', category: '平台费用' },
+    { key: 'allianceCommission', label: '联盟佣金', category: '平台费用' },
+    { key: 'evaluationReward', label: '评价有礼', category: '平台费用' },
+    { key: 'otherDeduction', label: '其他扣款', category: '平台费用' },
+    { key: 'qianchuanPromotion', label: '千川推广', category: '推广费用' },
+    { key: 'managementFee', label: '后台管理费', category: '管理费用' },
   ],
   唯品会: [
-    { key: 'gmv', label: '平台成交GMV' }, { key: 'salesRevenue', label: '销售收入' }, { key: 'actualRevenue', label: '实发收入' },
-    { key: 'refundAmount', label: '退货金额' }, { key: 'activityDiscount', label: '活动折扣' }, { key: 'salesCost', label: '销售成本' },
-    { key: 'platformFee', label: '平台费用' }, { key: 'promotionFee', label: '推广费' }, { key: 'shippingFee', label: '运费' },
-    { key: 'otherExpense', label: '其他费用支出' }, { key: 'taxes', label: '税金及附加' }, { key: 'netProfit', label: '净利润' },
-    { key: 'netProfitMargin', label: '净利润率', valueType: 'ratio' }, { key: 'allocatedNetProfit', label: '公摊后净利润' },
+    { key: 'gmv', label: '平台成交GMV', category: '核心指标' },
+    { key: 'activityDiscount', label: '活动折扣', category: '核心指标' },
   ],
   爱库存: [
-    { key: 'gmv', label: '平台成交GMV' }, { key: 'actualRevenue', label: '实发收入' }, { key: 'refundAmount', label: '退货金额' },
-    { key: 'platformFee', label: '平台费用' }, { key: 'promotionFee', label: '推广费' }, { key: 'managementFee', label: '后台管理费' },
-    { key: 'otherExpense', label: '其他费用支出' }, { key: 'taxes', label: '税金及附加' }, { key: 'netProfit', label: '净利润' },
-    { key: 'netProfitMargin', label: '净利润率', valueType: 'ratio' }, { key: 'allocatedNetProfit', label: '公摊后净利润' },
+    { key: 'gmv', label: '平台成交GMV', category: '销售' },
+    { key: 'activityDiscount', label: '营销活动优惠', sourceField: '营销活动优惠', category: '销售' },
+    { key: 'transactionFee', label: '交易手续费', category: '平台费用' },
+    { key: 'freightInsurance', label: '运费险', category: '平台费用' },
+    { key: 'consumerCompensation', label: '消费者赔付', category: '平台费用' },
+    { key: 'merchantDirect', label: '商家直客', category: '平台费用' },
+    { key: 'superProductDeduction', label: '超品扣点费', category: '平台费用' },
+    { key: 'otherDeduction', label: '其他扣费', category: '平台费用' },
+    { key: 'managementFee', label: '后台管理费', category: '管理费用' },
   ],
   好衣库: [
-    { key: 'gmv', label: '平台成交GMV' }, { key: 'platformFee', label: '平台费用' }, { key: 'promotionFee', label: '推广活动费' },
-    { key: 'shippingFee', label: '快递信息服务费' }, { key: 'otherExpense', label: '其他费用支出' }, { key: 'netProfit', label: '净利润' },
-    { key: 'netProfitMargin', label: '净利润率', valueType: 'ratio' }, { key: 'allocatedNetProfit', label: '公摊后净利润' },
+    { key: 'gmv', label: '平台成交GMV', category: '销售' },
+    { key: 'technicalOperationServiceFee', label: '技术运营服务费', category: '平台费用' },
+    { key: 'expressInformationServiceFee', label: '快递信息服务费', category: '平台费用' },
   ],
   得物: [
     { key: 'gmv', label: '平台成交GMV' }, { key: 'salesRevenue', label: '销售收入' }, { key: 'refundAmount', label: '退货金额' },
@@ -129,7 +206,7 @@ const dailyDataFieldsByPlatform: Record<LedgerPlatform, DailyDataField[]> = {
   ],
 }
 
-const taskRows: DailyTaskRecord[] = [
+const seedTaskRows: DailyTaskRecord[] = [
   {
     id: 'task-1',
     taskId: '20260714KSGFGJ001',
@@ -231,6 +308,63 @@ const taskRows: DailyTaskRecord[] = [
     owner: '张管理员',
     reviewer: '王财务',
   },
+  createMockPublishedTask({
+    id: 'task-6', taskId: '20260713KSGFGJ001', platform: '快手', store: '官方旗舰店',
+    taskDate: '2026-07-13 08:04:18', businessDate: '2026-07-12',
+    metrics: { gmv: 14286.34, platformFee: 1708.52, managementFee: 124.8 }, peaCost: 326, owner: '李运营', reviewer: '张管理员',
+  }),
+  createMockPublishedTask({
+    id: 'task-7', taskId: '20260712KSGFGJ001', platform: '快手', store: '官方旗舰店',
+    taskDate: '2026-07-12 08:05:02', businessDate: '2026-07-11',
+    metrics: { gmv: 11968.2, platformFee: 1492.16, managementFee: 110.2 }, peaCost: 312, owner: '李运营', reviewer: '张管理员',
+  }),
+  createMockPublishedTask({
+    id: 'task-8', taskId: '20260713AKJBSP001', platform: '爱库存', store: '京倍店铺',
+    taskDate: '2026-07-13 08:10:36', businessDate: '2026-07-12',
+    metrics: { gmv: 6180.56, platformFee: 642.33, managementFee: 76.5 }, peaCost: 288, owner: '陈分析', reviewer: '王财务',
+  }),
+  createMockPublishedTask({
+    id: 'task-9', taskId: '20260712AKJBSP001', platform: '爱库存', store: '京倍店铺',
+    taskDate: '2026-07-12 08:10:58', businessDate: '2026-07-11',
+    metrics: { gmv: 5746.8, platformFee: 598.94, managementFee: 72.1 }, peaCost: 276, owner: '陈分析', reviewer: '王财务',
+  }),
+  createMockPublishedTask({
+    id: 'task-10', taskId: '20260713WPPPJH001', platform: '唯品会', store: '品牌集合店',
+    taskDate: '2026-07-13 08:18:42', businessDate: '2026-07-12', source: '人工上传',
+    metrics: { gmv: 21840.75, platformFee: 0, managementFee: 0 }, peaCost: 90, owner: '周运营', reviewer: '王财务', brandSkuCount: 186,
+  }),
+  createMockPublishedTask({
+    id: 'task-11', taskId: '20260712WPPPJH001', platform: '唯品会', store: '品牌集合店',
+    taskDate: '2026-07-12 08:18:10', businessDate: '2026-07-11', source: '人工上传',
+    metrics: { gmv: 19562.3, platformFee: 0, managementFee: 0 }, peaCost: 86, owner: '周运营', reviewer: '王财务', brandSkuCount: 172,
+  }),
+  createMockPublishedTask({
+    id: 'task-12', taskId: '20260711WPPPJH001', platform: '唯品会', store: '品牌集合店',
+    taskDate: '2026-07-11 08:19:05', businessDate: '2026-07-10', source: '人工上传',
+    metrics: { gmv: 18420.68, platformFee: 0, managementFee: 0 }, peaCost: 84, owner: '周运营', reviewer: '王财务', brandSkuCount: 161,
+  }),
+  createMockPublishedTask({
+    id: 'task-13', taskId: '20260713HYHYKS001', platform: '好衣库', store: '好衣库店铺',
+    taskDate: '2026-07-13 08:30:21', businessDate: '2026-07-12',
+    metrics: { gmv: 15482.6, platformFee: 2014.3, managementFee: 0 }, peaCost: 368, owner: '张管理员', reviewer: '王财务',
+  }),
+  createMockPublishedTask({
+    id: 'task-14', taskId: '20260712HYHYKS001', platform: '好衣库', store: '好衣库店铺',
+    taskDate: '2026-07-12 08:30:08', businessDate: '2026-07-11',
+    metrics: { gmv: 14876.4, platformFee: 1938.8, managementFee: 0 }, peaCost: 354, owner: '张管理员', reviewer: '王财务',
+  }),
+  createMockPublishedTask({
+    id: 'task-15', taskId: '20260713DYDYSP001', platform: '抖店', store: '抖店旗舰店',
+    taskDate: '2026-07-13 08:24:40', businessDate: '2026-07-12',
+    metrics: { gmv: 9820.44, platformFee: 1408.3, managementFee: 108 }, peaCost: 302, owner: '李运营', reviewer: '王财务', manualEditCount: 1,
+    reviewedFields: { '平台成交GMV': 9820.44, '运费险': 182.4, '消费者赔付': 35, '平台服务费': 442.1, '联盟佣金': 617.8, '评价有礼': 86, '其他扣款': 45, '千川推广': 880, '后台管理费': 108 },
+  }),
+  createMockPublishedTask({
+    id: 'task-16', taskId: '20260713DWDWSP001', platform: '得物', store: '得物店铺',
+    taskDate: '2026-07-13 08:36:14', businessDate: '2026-07-12',
+    metrics: { gmv: 7640, platformFee: 322, managementFee: 0 }, peaCost: 196, owner: '赵运营', reviewer: '王财务', manualEditCount: 1,
+    reviewedFields: { '平台成交GMV': 7640, '销售收入': 7060, '退货金额': 120, '平台费用': 322, '推广费': 470, '运费': 88, '净利润': 1110, '净利润率': 0.145 },
+  }),
 ]
 
 const ledgerPlatforms: LedgerPlatform[] = ['快手', '抖店', '唯品会', '爱库存', '好衣库', '得物']
@@ -295,21 +429,63 @@ function makeTaskId(platform: LedgerPlatform, store: string, records: DailyTaskR
   return `${prefix}${String(sequence).padStart(3, '0')}`
 }
 
-// 各平台任务结果预览字段白名单
-function getPlatformPreviewFields(platform: string, report: { rows: ReportRow[] }): string[] {
-  if (platform === '唯品会') {
-    return ['平台成交GMV', '活动折扣', 'BD佣金']
-  }
-  if (platform === '好衣库') {
-    return ['平台成交GMV', '技术运营服务费', '推广活动费', '快递信息服务费', '佣金', '罚款', '消费者赔付']
-  }
-  // 快手 / 爱库存：销售仅成交GMV + 平台费用全部 + 管理费用仅后台管理费
-  const fields: string[] = ['平台成交GMV']
-  report.rows
-    .filter((row) => row.category === '平台费用' && row.field.trim())
-    .forEach((row) => fields.push(row.field))
-  fields.push('后台管理费')
-  return fields
+function scaleMockFieldValues(values: Record<string, number> | undefined, factor: number) {
+  if (!values) return undefined
+  return Object.fromEntries(Object.entries(values).map(([field, value]) => [
+    field,
+    field === '净利润率' ? value : Math.round(value * factor * 100) / 100,
+  ]))
+}
+
+function extendPublishedTaskRows(seedRows: DailyTaskRecord[]) {
+  const targetDates = ['2026-07-12', '2026-07-11', '2026-07-10', '2026-07-09', '2026-07-08', '2026-07-07', '2026-07-06', '2026-07-05', '2026-07-04', '2026-07-03']
+  const publishedGroups = Array.from(new Map(
+    seedRows
+      .filter((task) => task.reportStatus === '已发布')
+      .map((task) => [`${task.platform}::${task.store}`, task]),
+  ).values())
+  const generated: DailyTaskRecord[] = []
+
+  publishedGroups.forEach((template) => {
+    const existingDates = new Set(seedRows
+      .filter((task) => task.reportStatus === '已发布' && task.platform === template.platform && task.store === template.store)
+      .map((task) => task.businessDate))
+
+    targetDates.filter((date) => !existingDates.has(date)).forEach((businessDate, index) => {
+      const factor = 0.84 + ((index * 7 + template.platform.length) % 15) / 100
+      const taskDate = `${datePlusDays(businessDate, 1)} ${String(8 + (index % 2)).padStart(2, '0')}:${String(4 + index).padStart(2, '0')}:20`
+      const taskId = `${businessDate.replaceAll('-', '')}${platformAbbreviation(template.platform)}${storeAbbreviation(template.store)}9${String(index + 1).padStart(2, '0')}`
+      generated.push(createMockPublishedTask({
+        id: `task-seed-${template.platform}-${template.store}-${businessDate}`,
+        taskId,
+        platform: template.platform,
+        store: template.store,
+        taskDate,
+        businessDate,
+        source: template.source,
+        metrics: {
+          gmv: Math.round(template.metrics.gmv * factor * 100) / 100,
+          platformFee: Math.round(template.metrics.platformFee * factor * 100) / 100,
+          managementFee: Math.round(template.metrics.managementFee * factor * 100) / 100,
+        },
+        peaCost: Math.max(0, Math.round(template.peaCost * factor)),
+        owner: template.owner,
+        reviewer: template.reviewer,
+        reviewedFields: scaleMockFieldValues(template.reviewedFields, factor),
+        manualEditCount: template.manualEditCount,
+        brandSkuCount: template.brandSkuCount ? Math.round(template.brandSkuCount * factor) : undefined,
+      }))
+    })
+  })
+
+  return [...seedRows, ...generated]
+}
+
+const taskRows = extendPublishedTaskRows(seedTaskRows)
+
+// 任务预览与日报数据共用同一份平台字段配置，避免一个页面展示明细、另一个页面展示合计。
+function getPlatformPreviewFields(platform: LedgerPlatform) {
+  return dailyDataFieldsByPlatform[platform]
 }
 
 interface TaskPreviewField {
@@ -326,37 +502,33 @@ interface TaskPreviewGroup {
 
 function taskPreviewGroups(task: DailyTaskRecord): TaskPreviewGroup[] {
   const report = reportData.find((item) => item.platform === task.platform)
-  if (!report) return []
-
-  const matchedIndex = report.dates.findIndex((point) => point.date === task.businessDate)
-  const dateIndex = matchedIndex >= 0 ? matchedIndex : Math.min(1, report.dates.length - 1)
-
-  const whitelist = getPlatformPreviewFields(task.platform, report)
-  // 唯品会字段跨多个 category，统一归入「核心指标」分组避免出现「聚水潭-实发毛利」等不友好分组名
-  const isUnifiedGroup = task.platform === '唯品会'
-  const categoryOrder = ['核心指标', '销售', '聚水潭-实发毛利', '平台费用', '推广费', '管理费用']
+  const dateIndex = report ? (() => {
+    const matchedIndex = report.dates.findIndex((point) => point.date === task.businessDate)
+    return matchedIndex >= 0 ? matchedIndex : Math.min(1, report.dates.length - 1)
+  })() : -1
+  const configuredFields = getPlatformPreviewFields(task.platform)
+  const categoryOrder = ['核心指标', '销售', '平台费用', '推广费用', '管理费用']
   const groupMap = new Map<string, TaskPreviewField[]>()
 
-  whitelist.forEach((fieldName) => {
-    const row = report.rows.find((r) => r.field === fieldName)
-    const category = isUnifiedGroup ? '核心指标' : (row?.category ?? '平台费用')
+  configuredFields.forEach((field) => {
+    const sourceField = field.sourceField ?? field.label
+    const row = report?.rows.find((reportRow) => reportRow.field === sourceField)
+    const category = field.category ?? row?.category ?? '核心指标'
     const originalValue = row
-      ? (row.field === '平台成交GMV'
+      ? (sourceField === '平台成交GMV'
           ? task.metrics.gmv
-          : row.field === '平台费用合计'
-            ? task.metrics.platformFee
-            : row.field === '管理费用合计'
+          : sourceField === '后台管理费'
               ? task.metrics.managementFee
               : row.daily[dateIndex]?.value ?? 0)
-      : 0
+      : field.key === 'gmv' ? task.metrics.gmv : field.key === 'managementFee' ? task.metrics.managementFee : 0
     const fieldType = row?.valueType ?? 'amount'
 
     if (!groupMap.has(category)) groupMap.set(category, [])
     groupMap.get(category)!.push({
-      field: fieldName,
+      field: field.label,
       valueType: fieldType,
       originalValue,
-      modifiedValue: task.reviewedFields?.[fieldName],
+      modifiedValue: task.reviewedFields?.[field.label],
     })
   })
 
@@ -384,21 +556,18 @@ function reportFieldValue(task: DailyTaskRecord, fieldName: string) {
 }
 
 function metricsForPublish(task: DailyTaskRecord) {
-  const fields = taskPreviewGroups(task)
   const gmv = task.reviewedFields?.['平台成交GMV'] ?? task.metrics.gmv
   const platformFeeTotal = task.reviewedFields?.['平台费用合计']
   const managementFee = task.reviewedFields?.['后台管理费'] ?? task.reviewedFields?.['管理费用合计'] ?? task.metrics.managementFee
-  const platformFee = platformFeeTotal ?? task.metrics.platformFee + fields
-    .flatMap((group) => group.category === '平台费用' ? group.fields : [])
-    .filter((field) => field.field !== '平台费用合计' && field.modifiedValue !== undefined)
-    .reduce((sum, field) => sum + (field.modifiedValue! - field.originalValue), 0)
+  // platformFee 仅为得物保留的兼容字段；其他平台写入各自的费用明细，不再由前端汇总。
+  const platformFee = task.platform === '得物' ? platformFeeTotal ?? task.metrics.platformFee : 0
 
   return {
     gmv,
     salesRevenue: reportFieldValue(task, '销售收入'),
     actualRevenue: reportFieldValue(task, '实发收入'),
     refundAmount: reportFieldValue(task, '退货金额'),
-    activityDiscount: reportFieldValue(task, '活动折扣'),
+    activityDiscount: reportFieldValue(task, task.platform === '爱库存' ? '营销活动优惠' : '活动折扣'),
     salesCost: reportFieldValue(task, '销售成本'),
     platformFee,
     promotionFee: reportFieldValue(task, '推广费'),
@@ -415,8 +584,36 @@ function metricsForPublish(task: DailyTaskRecord) {
     netProfit: reportFieldValue(task, '净利润'),
     netProfitMargin: reportFieldValue(task, '净利润率'),
     allocatedNetProfit: reportFieldValue(task, '公摊后净利润'),
+    technicalServiceFee: reportFieldValue(task, '技术服务费'),
+    revenueShareCommission: reportFieldValue(task, '分账佣金'),
+    platformOtherFee: reportFieldValue(task, '其他费用'),
+    returnShippingFee: reportFieldValue(task, '退货补运费'),
+    transitFee: reportFieldValue(task, '集运扣款（中转费）'),
+    consumerCompensation: reportFieldValue(task, '消费者赔付'),
+    freightInsurance: reportFieldValue(task, '运费险'),
+    platformServiceFee: reportFieldValue(task, '平台服务费'),
+    allianceCommission: reportFieldValue(task, '联盟佣金'),
+    evaluationReward: reportFieldValue(task, '评价有礼'),
+    otherDeduction: reportFieldValue(task, task.platform === '爱库存' ? '其他扣费' : '其他扣款'),
+    qianchuanPromotion: reportFieldValue(task, '千川推广'),
+    transactionFee: reportFieldValue(task, '交易手续费'),
+    merchantDirect: reportFieldValue(task, '商家直客'),
+    superProductDeduction: reportFieldValue(task, '超品扣点费'),
+    technicalOperationServiceFee: reportFieldValue(task, '技术运营服务费'),
+    expressInformationServiceFee: reportFieldValue(task, '快递信息服务费'),
   }
 }
+
+// 演示数据只从“已发布”任务生成，任务 ID、平台、店铺和业务日期均可一一回查。
+const initialDailyData: DailyDataRecord[] = taskRows
+  .filter((task) => task.reportStatus === '已发布')
+  .map((task) => ({
+    taskId: task.taskId,
+    businessDate: task.businessDate,
+    platform: task.platform,
+    store: task.store,
+    ...metricsForPublish(task),
+  }))
 
 function formatDailyDataValue(value: number | null, valueType: 'amount' | 'ratio' = 'amount') {
   return value === null ? '—' : formatPrecise(value, valueType)
@@ -430,7 +627,7 @@ function TaskPreviewDialog({ task, onClose, onEdit }: { task: DailyTaskRecord; o
       <section className="ledger-dialog task-preview-dialog">
         <header><div><span className="eyebrow">task_preview</span><h3>任务结果预览</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={onClose}>×</button></header>
         <div className="task-preview-grid"><span>任务 ID</span><strong>{task.taskId}</strong><span>平台 / 店铺</span><strong>{task.platform} · {task.store}</strong><span>业务日期</span><strong>{task.businessDate}</strong></div>
-        <p className="task-preview-original">原始任务指标：GMV {formatPrecise(task.metrics.gmv)}，平台费用 {formatPrecise(task.metrics.platformFee)}，管理费用 {formatPrecise(task.metrics.managementFee)}</p>
+        <p className="task-preview-note">按平台字段展示任务结果；费用字段保持明细，不汇总为单一平台管理费。</p>
         {groups.length ? <div className="task-detail-groups">{groups.map((group) => <section key={group.category}><h4>{group.category}</h4><div>{group.fields.map((field) => <p key={field.field} className={field.modifiedValue === undefined ? '' : 'is-modified'}><span>{field.field}</span><strong>{formatPrecise(field.originalValue, field.valueType)}</strong>{field.modifiedValue === undefined ? null : <strong className="task-field-modified">{formatPrecise(field.modifiedValue, field.valueType)}</strong>}</p>)}</div></section>)}</div> : <div className="task-detail-empty">该平台暂未配置日报字段映射。</div>}
         {task.reviewedFields && Object.keys(task.reviewedFields).length ? <p className="task-preview-revision">已保存修正字段。字段顺序为“字段名称 / 原始数据 / 修改数据”，原始任务结果和日志保持不变。</p> : null}
         <footer className="task-preview-actions">
@@ -444,9 +641,108 @@ function TaskPreviewDialog({ task, onClose, onEdit }: { task: DailyTaskRecord; o
   )
 }
 
+function DailyDataDetailDialog({
+  rows,
+  fields,
+  platform,
+  store,
+  startDate,
+  endDate,
+  onClose,
+}: {
+  rows: DailyDataRecord[]
+  fields: DailyDataField[]
+  platform: LedgerPlatform
+  store: string
+  startDate: string
+  endDate: string
+  onClose: () => void
+}) {
+  const dateRange = startDate && endDate ? `${startDate} 至 ${endDate}` : startDate || endDate || '全部已发布日期'
+
+  return (
+    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="ledger-dialog daily-data-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="daily-data-detail-title">
+        <header>
+          <div>
+            <span className="eyebrow">daily_data_detail</span>
+            <h3 id="daily-data-detail-title">日报数据明细</h3>
+          </div>
+          <button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={onClose}>×</button>
+        </header>
+        <div className="daily-data-detail-dialog__meta">
+          <span>平台：{platform}</span>
+          <span>店铺：{store}</span>
+          <span>业务日期：{dateRange}</span>
+          <span>共 {rows.length} 条</span>
+        </div>
+        <div className="daily-data-detail-dialog__table-wrap">
+          <div className="table-scroll">
+            <table className="daily-data-detail-dialog__table">
+              <thead>
+                <tr>
+                  <th>业务日期</th>
+                  {fields.map((field) => <th key={field.key}>{field.label}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length ? rows.map((row) => (
+                  <tr key={row.taskId}>
+                    <td>{row.businessDate}</td>
+                    {fields.map((field) => <td key={field.key}>{formatDailyDataValue(row[field.key], field.valueType)}</td>)}
+                  </tr>
+                )) : <tr><td className="daily-data-detail-dialog__empty" colSpan={fields.length + 1}>当前筛选条件下暂无已发布日报数据。</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <footer>
+          <button className="primary-action" type="button" onClick={onClose}>关闭</button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
+function ListPagination({
+  currentPage,
+  totalItems,
+  onPageChange,
+  label,
+}: {
+  currentPage: number
+  totalItems: number
+  onPageChange: (page: number) => void
+  label: string
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIST_PAGE_SIZE))
+  const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4))
+  const endPage = Math.min(totalPages, startPage + 4)
+  const pageNumbers = Array.from({ length: endPage - startPage + 1 }, (_, index) => startPage + index)
+
+  return (
+    <nav className="ledger-pagination" aria-label={`${label}分页`}>
+      <span className="ledger-pagination__summary">共 {totalItems} 条，每页 {LIST_PAGE_SIZE} 条</span>
+      <div className="ledger-pagination__controls">
+        <button type="button" className="ledger-pagination__arrow" aria-label="上一页" disabled={currentPage <= 1} onClick={() => onPageChange(currentPage - 1)}>
+          <ChevronLeft aria-hidden="true" />
+        </button>
+        {pageNumbers.map((page) => (
+          <button key={page} type="button" className={page === currentPage ? 'active' : ''} aria-current={page === currentPage ? 'page' : undefined} onClick={() => onPageChange(page)}>
+            {page}
+          </button>
+        ))}
+        <button type="button" className="ledger-pagination__arrow" aria-label="下一页" disabled={currentPage >= totalPages} onClick={() => onPageChange(currentPage + 1)}>
+          <ChevronRight aria-hidden="true" />
+        </button>
+      </div>
+    </nav>
+  )
+}
+
 export default function TasksPage({ view = 'task-records' }: { view?: DataCenterView }) {
   const [tasks, setTasks] = useState<DailyTaskRecord[]>(taskRows)
-  const [dailyData, setDailyData] = useState<DailyDataRecord[]>([])
+  const [dailyData, setDailyData] = useState<DailyDataRecord[]>(() => initialDailyData)
   const dataTab: DataTab = view === 'daily-data' ? 'dailyData' : 'tasks'
   const [taskPlatform, setTaskPlatform] = useState<DataPlatformFilter>('全部')
   const [taskStore, setTaskStore] = useState<DataStoreFilter>('全部')
@@ -472,8 +768,11 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
   const [batchSourceEndDate, setBatchSourceEndDate] = useState('')
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
   const [previewTask, setPreviewTask] = useState<DailyTaskRecord | null>(null)
+  const [dailyDetailDialogOpen, setDailyDetailDialogOpen] = useState(false)
   const [logTask, setLogTask] = useState<DailyTaskRecord | null>(null)
   const [reviewingTaskId, setReviewingTaskId] = useState<string | null>(null)
+  const [taskPage, setTaskPage] = useState(1)
+  const [dailyDataPage, setDailyDataPage] = useState(1)
   const [manualUploadFiles, setManualUploadFiles] = useState<Record<string, File[]>>({})
   const [uploadStoreName, setUploadStoreName] = useState('')
   const [uploadPlatformName, setUploadPlatformName] = useState<LedgerPlatform>('快手')
@@ -492,6 +791,15 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
   const [downloadEndDate, setDownloadEndDate] = useState(dateMinusOne())
   const [editingDailyData, setEditingDailyData] = useState<DailyDataRecord | null>(null)
   const [dailyFillValues, setDailyFillValues] = useState<Partial<Record<DailyDataMetricKey, string>>>({})
+
+  useEffect(() => {
+    setTaskPage(1)
+  }, [taskPlatform, taskStore, taskStartDate, taskEndDate, taskSourceFilter, taskOwnerFilter, taskReviewerFilter, taskResultFilter, taskStatusFilter])
+
+  useEffect(() => {
+    setDailyDataPage(1)
+  }, [dailyPlatform, dailyStore, dailyStartDate, dailyEndDate])
+
   const taskStoreOptions = uniqueValues(tasks.filter((task) => taskPlatform === '全部' || task.platform === taskPlatform).map((task) => task.store))
   const taskOwners = uniqueValues(tasks.map((task) => task.owner))
   const taskReviewers = uniqueValues(tasks.map((task) => task.reviewer))
@@ -534,8 +842,12 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
     .filter((row) => !dailyStartDate || row.businessDate >= dailyStartDate)
     .filter((row) => !dailyEndDate || row.businessDate <= dailyEndDate)
     .sort((left, right) => right.businessDate.localeCompare(left.businessDate))
-  const dailyDetailRecord = (dailyEndDate ? visibleDailyData.find((row) => row.businessDate === dailyEndDate) : undefined) ?? visibleDailyData[0]
-  const dailyDetailTask = dailyDetailRecord ? tasks.find((task) => task.taskId === dailyDetailRecord.taskId) ?? null : null
+  const taskTotalPages = Math.max(1, Math.ceil(visibleTasks.length / LIST_PAGE_SIZE))
+  const dailyDataTotalPages = Math.max(1, Math.ceil(visibleDailyData.length / LIST_PAGE_SIZE))
+  const currentTaskPage = Math.min(taskPage, taskTotalPages)
+  const currentDailyDataPage = Math.min(dailyDataPage, dailyDataTotalPages)
+  const pagedTasks = visibleTasks.slice((currentTaskPage - 1) * LIST_PAGE_SIZE, currentTaskPage * LIST_PAGE_SIZE)
+  const pagedDailyData = visibleDailyData.slice((currentDailyDataPage - 1) * LIST_PAGE_SIZE, currentDailyDataPage * LIST_PAGE_SIZE)
   const reviewingTask = tasks.find((task) => task.taskId === reviewingTaskId) ?? null
   const dailyDataFields = dailyDataFieldsByPlatform[dailyPlatform]
   const dailyDataColumns = ['业务日期', '平台名称', '店铺名称', ...dailyDataFields.map((field) => field.label), '操作项']
@@ -883,7 +1195,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
 
       <section className="ledger-advanced-filters" aria-label="高级筛选">
         <span className="ledger-advanced-filters__label">{dataTab === 'tasks' ? '任务筛选' : '日期筛选'}</span>
-        {dataTab === 'tasks' ? <><label className="store-filter date-range-filter"><span>任务日期</span><input type="date" value={taskStartDate} onChange={(event) => setTaskStartDate(event.target.value)} /><b>至</b><input type="date" value={taskEndDate} onChange={(event) => setTaskEndDate(event.target.value)} /></label><label className="store-filter"><span>来源</span><select value={taskSourceFilter} onChange={(event) => setTaskSourceFilter(event.target.value as '全部' | TaskSource)}><option value="全部">全部</option><option value="定时任务">定时任务</option><option value="指令">指令</option><option value="人工上传">人工上传</option><option value="人工上传文件">人工上传文件</option></select></label><label className="store-filter"><span>归属人</span><select value={taskOwnerFilter} onChange={(event) => setTaskOwnerFilter(event.target.value)}><option value="全部">全部</option>{taskOwners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label><label className="store-filter"><span>审核人</span><select value={taskReviewerFilter} onChange={(event) => setTaskReviewerFilter(event.target.value)}><option value="全部">全部</option>{taskReviewers.map((reviewer) => <option key={reviewer} value={reviewer}>{reviewer}</option>)}</select></label><label className="store-filter"><span>任务结果</span><select value={taskResultFilter} onChange={(event) => setTaskResultFilter(event.target.value as '全部' | TaskResult)}><option value="全部">全部</option><option value="完成">完成</option><option value="失败">失败</option></select></label><label className="store-filter"><span>日报状态</span><select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value as '全部' | DailyReportStatus)}><option value="全部">全部</option><option value="待发布">待发布</option><option value="已发布">已发布</option><option value="未发布">未发布</option></select></label></> : <div className="daily-detail-filter"><label className="store-filter date-range-filter"><span>业务日期</span><input type="date" max={dateMinusOne()} value={dailyStartDate} onChange={(event) => setDailyStartDate(event.target.value)} /><b>至</b><input type="date" max={dateMinusOne()} value={dailyEndDate} onChange={(event) => setDailyEndDate(event.target.value)} /></label><button className="secondary-action" type="button" disabled={!dailyDetailTask} onClick={() => setPreviewTask(dailyDetailTask)}><Eye aria-hidden="true" />查看明细</button></div>}
+        {dataTab === 'tasks' ? <><label className="store-filter date-range-filter"><span>任务日期</span><input type="date" value={taskStartDate} onChange={(event) => setTaskStartDate(event.target.value)} /><b>至</b><input type="date" value={taskEndDate} onChange={(event) => setTaskEndDate(event.target.value)} /></label><label className="store-filter"><span>来源</span><select value={taskSourceFilter} onChange={(event) => setTaskSourceFilter(event.target.value as '全部' | TaskSource)}><option value="全部">全部</option><option value="定时任务">定时任务</option><option value="指令">指令</option><option value="人工上传">人工上传</option><option value="人工上传文件">人工上传文件</option></select></label><label className="store-filter"><span>归属人</span><select value={taskOwnerFilter} onChange={(event) => setTaskOwnerFilter(event.target.value)}><option value="全部">全部</option>{taskOwners.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label><label className="store-filter"><span>审核人</span><select value={taskReviewerFilter} onChange={(event) => setTaskReviewerFilter(event.target.value)}><option value="全部">全部</option>{taskReviewers.map((reviewer) => <option key={reviewer} value={reviewer}>{reviewer}</option>)}</select></label><label className="store-filter"><span>任务结果</span><select value={taskResultFilter} onChange={(event) => setTaskResultFilter(event.target.value as '全部' | TaskResult)}><option value="全部">全部</option><option value="完成">完成</option><option value="失败">失败</option></select></label><label className="store-filter"><span>日报状态</span><select value={taskStatusFilter} onChange={(event) => setTaskStatusFilter(event.target.value as '全部' | DailyReportStatus)}><option value="全部">全部</option><option value="待发布">待发布</option><option value="已发布">已发布</option><option value="未发布">未发布</option></select></label></> : <div className="daily-detail-filter"><label className="store-filter date-range-filter"><span>业务日期</span><input type="date" max={dateMinusOne()} value={dailyStartDate} onChange={(event) => setDailyStartDate(event.target.value)} /><b>至</b><input type="date" max={dateMinusOne()} value={dailyEndDate} onChange={(event) => setDailyEndDate(event.target.value)} /></label><button className="secondary-action" type="button" disabled={!visibleDailyData.length} onClick={() => setDailyDetailDialogOpen(true)}><Eye aria-hidden="true" />查看明细</button></div>}
       </section>
 
       <article className={`data-table-card upload-record-card task-record-card ${dataTab === 'dailyData' ? 'daily-data-table' : ''}`} data-prd-anchor="tasks-ledger">
@@ -930,7 +1242,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
             </thead>
             <tbody>
               {dataTab === 'tasks'
-                ? visibleTasks.map((row) => (
+                ? pagedTasks.map((row) => (
                     <tr key={row.id}>
                       <td><span className="batch-id">{row.taskId}</span></td>
                       <td><span className={`data-pill ${row.source === '人工上传文件' || row.source === '人工上传' ? 'warning' : 'normal'}`}>{row.source}</span></td>
@@ -967,7 +1279,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
                       </td>
                     </tr>
                   ))
-                : visibleDailyData.map((row) => (
+                : pagedDailyData.map((row) => (
                     <tr key={row.taskId}>
                       <td>{row.businessDate}</td>
                       <td>{row.platform}</td>
@@ -981,6 +1293,12 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
             </tbody>
           </table>
         </div>
+        <ListPagination
+          label={dataTab === 'tasks' ? '日报任务记录' : '日报数据'}
+          currentPage={dataTab === 'tasks' ? currentTaskPage : currentDailyDataPage}
+          totalItems={dataTab === 'tasks' ? visibleTasks.length : visibleDailyData.length}
+          onPageChange={dataTab === 'tasks' ? setTaskPage : setDailyDataPage}
+        />
       </article>
 
       {templateDialogOpen ? (
@@ -1208,6 +1526,7 @@ export default function TasksPage({ view = 'task-records' }: { view?: DataCenter
       ) : null}
 
       {previewTask ? <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} onEdit={(task) => { setPreviewTask(null); openReview(task) }} /> : null}
+      {dailyDetailDialogOpen ? <DailyDataDetailDialog rows={visibleDailyData} fields={dailyDataFields} platform={dailyPlatform} store={dailyStore} startDate={dailyStartDate} endDate={dailyEndDate} onClose={() => setDailyDetailDialogOpen(false)} /> : null}
       {logTask ? <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setLogTask(null)}><section className="ledger-dialog"><header><div><span className="eyebrow">task_log</span><h3>任务运行日志</h3></div><button className="dialog-close" type="button" aria-label="关闭弹窗" onClick={() => setLogTask(null)}>×</button></header><pre className="task-log">{logTask.taskLog}</pre></section></div> : null}
 
       {/* 下载日报数据弹窗 */}
