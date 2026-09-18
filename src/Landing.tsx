@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -10,7 +10,6 @@ import {
   FileCheck2,
   Layers3,
   Network,
-  Play,
   ScanSearch,
   Sparkles,
 } from 'lucide-react'
@@ -67,30 +66,18 @@ const scenarios: Record<Scenario, {
 const platformNodes = ['内容电商', '货架电商', '分销 / 特卖', '私域 / 独立站']
 
 export default function Landing() {
-  const [scenario, setScenario] = useState<Scenario>('growth')
-  const [demoOpen, setDemoOpen] = useState(false)
-  const content = scenarios[scenario]
+  const content = scenarios.growth
 
   useEffect(() => {
     document.title = '澄明 · 电商经营智能体'
   }, [])
 
-  const scrollToPreview = () => document.querySelector('#workbench-preview')?.scrollIntoView({ behavior: 'smooth' })
-
   return (
     <main className="landing-shell">
       <section className="landing-hero" aria-labelledby="landing-title">
         <nav className="landing-nav" aria-label="主导航">
-          <a className="landing-brand" href="#top" aria-label="澄明首页"><span className="brand-sigil">C</span><span>澄明</span></a>
-          <div className="scenario-tabs" role="tablist" aria-label="使用场景">
-            {(Object.keys(scenarios) as Scenario[]).map((key) => (
-              <button key={key} type="button" role="tab" aria-selected={scenario === key} className={scenario === key ? 'is-active' : ''} onClick={() => setScenario(key)}>{scenarios[key].label}</button>
-            ))}
-          </div>
-          <div className="nav-actions">
-            <a className="nav-workbench" href="#workbench"><span className="nav-workbench-full">数据看板</span><span className="nav-workbench-short">看板</span><ArrowUpRight aria-hidden="true" /></a>
-            <button className="nav-demo" type="button" onClick={() => setDemoOpen(true)}>申请演示 <ArrowUpRight aria-hidden="true" /></button>
-          </div>
+          <div className="landing-brand"><span className="brand-sigil">C</span><span>澄明</span></div>
+          <span className="landing-nav-caption">电商经营智能体</span>
         </nav>
 
         <div className="hero-copy" id="top">
@@ -98,8 +85,7 @@ export default function Landing() {
           <h1 id="landing-title">把电商经营<br />放到一张<strong>清楚的桌面</strong>上。</h1>
           <p className="hero-statement">{content.statement}</p>
           <div className="hero-actions">
-            <button className="button-primary" type="button" onClick={() => setDemoOpen(true)}>申请演示 <ArrowUpRight aria-hidden="true" /></button>
-            <button className="button-quiet" type="button" onClick={scrollToPreview}><Play aria-hidden="true" />查看工作台示例</button>
+            <a className="button-primary landing-demo-entry" href="#dashboard">查看演示版 <ArrowUpRight aria-hidden="true" /></a>
           </div>
           <p className="sample-note"><Sparkles aria-hidden="true" />以下数据均为产品演示示例</p>
         </div>
@@ -124,7 +110,7 @@ export default function Landing() {
             ))}
           </div>
         </div>
-        <a className="scroll-cue" href="#workbench-preview">向下查看系统如何判断 <ArrowDownRight aria-hidden="true" /></a>
+        <p className="scroll-cue">向下查看系统如何判断 <ArrowDownRight aria-hidden="true" /></p>
       </section>
 
       <section className="proof-strip" aria-label="产品能力摘要">
@@ -151,13 +137,11 @@ export default function Landing() {
       </section>
 
       <section className="trust-section">
-        <article><p className="kicker"><span />DATA YOU CAN CHECK</p><h2>数据不是结论。<br />能回查才算。</h2><p>从原始账单、字段规则到人工确认，每个数字都保留自己的来处。智能体负责发现和解释，不替你跳过审核。</p><a href="#workbench-preview">看看核验过程 <ArrowUpRight aria-hidden="true" /></a></article>
+        <article><p className="kicker"><span />DATA YOU CAN CHECK</p><h2>数据不是结论。<br />能回查才算。</h2><p>从原始账单、字段规则到人工确认，每个数字都保留自己的来处。智能体负责发现和解释，不替你跳过审核。</p></article>
         <div className="trust-path"><div><span>01</span><strong>来源</strong><small>账单、日报、平台接口</small></div><div><span>02</span><strong>规则</strong><small>统一日期和金额口径</small></div><div><span>03</span><strong>复核</strong><small>差异自动进入待办</small></div><div><span>04</span><strong>确认</strong><small>发布可信经营数据</small></div></div>
       </section>
 
-      <section className="closing-cta"><p className="kicker"><span />START WITH ONE REPORT</p><h2>先把一份日报看明白。</h2><p>带上你们正在用的表，我们用真实的经营问题演示这张桌面能做什么。</p><button className="button-primary" type="button" onClick={() => setDemoOpen(true)}>申请演示 <ArrowUpRight aria-hidden="true" /></button></section>
-
-      {demoOpen ? <div className="demo-dialog-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setDemoOpen(false)}><section className="demo-dialog" role="dialog" aria-modal="true" aria-labelledby="demo-title"><button type="button" aria-label="关闭" onClick={() => setDemoOpen(false)}>×</button><p className="kicker"><span />REQUEST A DEMO</p><h2 id="demo-title">带一份正在使用的日报来。</h2><p>演示申请入口已准备好；接入流程会根据平台、店铺数量和当前数据来源确认。</p><a className="button-primary" href="mailto:hello@example.com?subject=申请澄明演示">发送演示申请 <ArrowUpRight aria-hidden="true" /></a></section></div> : null}
+      <section className="closing-cta"><p className="kicker"><span />START WITH ONE REPORT</p><h2>先把一份日报看明白。</h2><p>从经营概览到商品转化，用演示数据体验看板的完整流程。</p></section>
     </main>
   )
 }
