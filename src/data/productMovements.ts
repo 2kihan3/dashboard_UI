@@ -4,6 +4,7 @@ export type MovementKind = 'new' | 'down'
 export type MovementMetric = 'payment' | 'estimatedOrders'
 export interface ProductMovementRow {
   id: string; name: string; sku: string; owner: string | null; group: string | null
+  conversion?: number | null
   payment: number; previousPayment: number; estimatedOrders: number; previousOrders: number
 }
 // 独立虚拟样本，仅验证 TOP100 / 分页。不能计入测试环境快照的汇总。

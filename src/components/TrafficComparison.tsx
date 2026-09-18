@@ -1,5 +1,10 @@
-import { compareTraffic, observationDate, trafficDemo, type TrafficMetric, type TrafficCounts } from '../data/trafficComparison'
+import { useState } from 'react'
+import { rankTraffic, trafficSortLabels, type TrafficSort } from '../data/trafficRanking'
+import { compareTraffic, type TrafficMetric, type TrafficCounts } from '../data/trafficComparison'
+import { defaultEnd, periodTraffic, periodProducts, shiftDate, type PeriodDays } from '../data/dashboardPeriods'
 import TrafficQuadrant from './TrafficQuadrant'
+import ProductId from './ProductId'
+import TopRankingDetails from './TopRankingDetails'
 
 const percent = (value: number | null) => value === null ? '—' : `${value.toFixed(2)}%`
 const metricLabels: Record<TrafficMetric, { title: string; formula: string }> = {
@@ -11,24 +16,29 @@ function Counts({ counts, metric }: { counts: TrafficCounts; metric: TrafficMetr
   const fields: [keyof TrafficCounts, string][] = metric === 'ctr' ? [['exposure', '曝光'], ['clicks', '点击']] : metric === 'cvr' ? [['clicks', '点击'], ['buyers', '成交']] : [['exposure', '曝光'], ['buyers', '成交']]
   return <dl className="tc-counts">{fields.map(([field, label]) => <div key={field}><dt>{label}</dt><dd>{counts[field] === null ? '—' : counts[field].toLocaleString('zh-CN')}<span> 人</span></dd></div>)}</dl>
 }
-function Reference({ value, current, counts, metric, label }: { value: number | null; current: number | null; counts: TrafficCounts; metric: TrafficMetric; label: string }) {
+function Reference({ value, current, counts, metric, label, rateLabel }: { value: number | null; current: number | null; counts: TrafficCounts; metric: TrafficMetric; label: string; rateLabel: string }) {
   const delta = value === null || current === null ? null : current - value
-  return <div className="tc-reference"><span className="tc-mobile-period">{label}</span><strong>{percent(value)}</strong><Counts counts={counts} metric={metric} /><small data-direction={delta === null ? 'missing' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>{delta === null ? '数据不足' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)} 个百分点`}</small></div>
+  return <div className="tc-reference"><span className="tc-mobile-period">{label}</span><div className="tc-delta" data-direction={delta === null ? 'missing' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'} aria-label={`${label}，基准日差值${delta === null ? '数据不足' : `${delta.toFixed(2)}个百分点`}`}><b>{delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`}</b><span>{delta === null ? '数据不足' : '个百分点'}</span></div><div className="tc-baseline-rate"><span>{rateLabel}</span><strong>{percent(value)}</strong></div><Counts counts={counts} metric={metric} /></div>
 }
-export default function TrafficComparison({ search, owner, group, top }: { search: string; owner: string; group: string; top: number }) {
-  const products = trafficDemo.filter(product => `${product.name} ${product.sku ?? ''} ${product.id}`.toLowerCase().includes(search.trim().toLowerCase()) && (owner === '全部' || (owner === '未归因' ? !product.owner : product.owner === owner)) && (group === '全部' || product.group === group)).slice(0, top)
+export default function TrafficComparison({ search, owner, group, top, end = defaultEnd, days = 1 }: { search: string; owner: string; group: string; top: number; end?: string; days?: PeriodDays }) {
+  const [sorts, setSorts] = useState<Record<TrafficMetric, TrafficSort>>({ ctr: 'rate', cvr: 'rate', exposureConversion: 'rate' })
+  const dailyProducts = new Map(periodProducts(end, 1).map(row => [row.id, row]))
+  const observationDate = end
+  const dateLabel = (offset: number) => shiftDate(end, offset).slice(5).replace('-', '.')
+  const products = periodTraffic(end).map(row => ({ ...row, payment: dailyProducts.get(row.id)!.payment, estimatedOrders: dailyProducts.get(row.id)!.estimatedOrders })).filter(product => `${product.name} ${product.sku ?? ''} ${product.id}`.toLowerCase().includes(search.trim().toLowerCase()) && (owner === '全部' || (owner === '未归因' ? !product.owner : product.owner === owner)) && (group === '全部' || product.group === group)).slice(0, 100)
   return <section className="tc-section" aria-label="流量效率时间对比">
-    <div className="os-section-label"><h2>流量与承接</h2><span>观察日：{observationDate}（昨日） · 非实时数据</span></div>
-    <p className="tc-note">布局演示数据 · 7天：09.10—09.16 · 14天：09.03—09.16，均不含昨日。基准按人数加权计算，不是每日比率的简单平均。</p>
-    <div className="os-grid">{(['ctr', 'cvr', 'exposureConversion'] as TrafficMetric[]).map(metric => <article className="os-panel tc-panel" data-slot="card" key={metric}>
-      <header data-slot="card-header"><h3 data-slot="card-title">{metricLabels[metric].title}</h3><p data-slot="card-description">{metricLabels[metric].formula} · 差值均为昨日减去参照值</p></header>
-      <div data-slot="card-content" className="tc-content"><div className="tc-columns"><span>昨日 · 09.17<small>单日人数</small></span><span>前天 · 09.16<small>单日人数</small></span><span>7天基准<small>周期累计 · 加权比率</small></span><span>14天基准<small>周期累计 · 加权比率</small></span></div>
-        {products.map(product => { const result = compareTraffic(product.days, observationDate, metric); return <div className="tc-product" key={product.id}>
-          <div className="tc-product-title"><strong>{product.name}</strong><span>{product.owner ?? '未归因'}</span></div>
-          <div className="tc-values"><div className="tc-current"><span className="tc-mobile-period">昨日 · 09.17</span><strong>{percent(result.yesterday)}</strong><Counts counts={result.counts.yesterday} metric={metric} /></div><Reference value={result.previous} current={result.yesterday} counts={result.counts.previous} metric={metric} label="前天 · 09.16" /><Reference value={result.seven} current={result.yesterday} counts={result.counts.seven} metric={metric} label="7天 · 周期累计" /><Reference value={result.fourteen} current={result.yesterday} counts={result.counts.fourteen} metric={metric} label="14天 · 周期累计" /></div>
+    <div className="os-section-label"><h2>流量与承接</h2><span>观察日：{observationDate}（基准日） · 不受统计周期切换影响</span></div>
+    <p className="tc-note">演示数据 · 以上方截至日期为观察日；7天、14天参照均不含基准日，整体比率由周期累计人数计算。</p>
+    <div className="os-grid tc-grid">{(['ctr', 'cvr', 'exposureConversion'] as TrafficMetric[]).map(metric => <article className="os-panel tc-panel" data-slot="card" key={metric}>
+      <header data-slot="card-header" className="tc-card-heading"><div><h3 data-slot="card-title">{metricLabels[metric].title}</h3><p data-slot="card-description">{metricLabels[metric].formula} · 差值＝基准日比率－参照比率，单位为百分点</p></div><label>排序<select aria-label={`${metricLabels[metric].title}排序`} value={sorts[metric]} onChange={event => setSorts(current => ({ ...current, [metric]: event.target.value as TrafficSort }))}>{(Object.keys(trafficSortLabels) as TrafficSort[]).map(key => <option key={key} value={key}>{trafficSortLabels[key]} · 降序</option>)}</select></label></header>
+      <div data-slot="card-content" className="tc-content"><TopRankingDetails key={`${metric}-${sorts[metric]}`} rows={rankTraffic(products, observationDate, metric, sorts[metric])} preview={top} title={metricLabels[metric].title} note={`${observationDate} · 按${trafficSortLabels[sorts[metric]]}降序 · 演示数据`}>{(items, offset) => <><div className="tc-columns"><span className="tc-product-column">商品<small>{trafficSortLabels[sorts[metric]]}降序</small></span><span>基准日<small>{dateLabel(0)} · 单日</small></span><span>对比前一日<small>{dateLabel(-1)} · 单日</small></span><span>对比7天<small>{dateLabel(-7)}—{dateLabel(-1)} · 累计</small></span><span>对比14天<small>{dateLabel(-14)}—{dateLabel(-1)} · 累计</small></span></div>
+        {items.map((product, index) => { const result = compareTraffic(product.days, observationDate, metric); return <div className="tc-product" key={product.id}>
+          <div className="tc-product-title"><div><strong><span className="os-rank-number">{offset + index + 1}</span>{product.name}</strong><ProductId id={product.id} /><small className="tc-product-meta">{product.estimatedOrders.toLocaleString("zh-CN")} 单 · ¥{product.payment.toLocaleString("zh-CN", { maximumFractionDigits: 2 })}</small></div><span>{product.owner ?? '未归因'}</span></div>
+          <div className="tc-values"><div className="tc-current"><span className="tc-mobile-period">基准日 · {dateLabel(0)}</span><div className="tc-observed-rate"><span>基准日比率</span><strong>{percent(result.yesterday)}</strong></div><span className="tc-observed-note">观察基准</span><Counts counts={result.counts.yesterday} metric={metric} /></div><Reference value={result.previous} current={result.yesterday} counts={result.counts.previous} metric={metric} label={`前一日 · ${dateLabel(-1)}`} rateLabel="前一日比率" /><Reference value={result.seven} current={result.yesterday} counts={result.counts.seven} metric={metric} label={`7天 · ${dateLabel(-7)}—${dateLabel(-1)}`} rateLabel="7天整体比率" /><Reference value={result.fourteen} current={result.yesterday} counts={result.counts.fourteen} metric={metric} label={`14天 · ${dateLabel(-14)}—${dateLabel(-1)}`} rateLabel="14天整体比率" /></div>
         </div> })}
-        {!products.length && <p className="os-no-rows">没有匹配商品，请调整顶部筛选。</p>}
-      </div><footer data-slot="card-footer">演示商品样本 {products.length} 条 · 人数按日累计加权，非周期去重人数 · 缺失数据不补零</footer>
-    </article>)}<TrafficQuadrant products={products} /></div>
+        {!items.length && <p className="os-no-rows">没有匹配商品，请调整顶部筛选。</p>}
+        </>}</TopRankingDetails>
+      </div><footer data-slot="card-footer">{products.length} 个演示商品 · 基准日/前一日为单日人数，7/14天为按日累计人数，非周期去重 · 缺失显示“—”，不补零</footer>
+    </article>)}<TrafficQuadrant key={`${end}-${days}`} products={products} end={end} days={days} /></div>
   </section>
 }

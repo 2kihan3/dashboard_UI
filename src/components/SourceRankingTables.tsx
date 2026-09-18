@@ -1,16 +1,9 @@
-import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import ProductId from './ProductId'
 import { sourceProductRanking, sourceSpendRanking, type SourceRankingRow } from '../data/sourceRankingSnapshot'
 
 const money = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 function Product({ row }: { row: SourceRankingRow }) {
-  const [copied, setCopied] = useState(false)
-  const [error, setError] = useState(false)
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(row.id); setCopied(true); setError(false) }
-    catch { setError(true) }
-  }
-  return <div className="sr-product"><strong>{row.name}</strong><small>{row.sku && `货号 ${row.sku} · `}ID {row.id}<button type="button" aria-label={`复制商品 ID ${row.id}`} onClick={copy}>{copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}</button><span role="status">{copied ? '已复制' : error ? '复制失败，请手动复制' : ''}</span></small></div>
+  return <div className="sr-product"><strong>{row.name}</strong>{row.sku && <small>货号 {row.sku}</small>}<ProductId id={row.id} /></div>
 }
 export default function SourceRankingTables() {
   return <section className="sr-section" aria-label="测试环境源表">

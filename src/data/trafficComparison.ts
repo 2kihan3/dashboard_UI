@@ -33,12 +33,12 @@ export function compareTraffic(days: TrafficDay[], date: string, metric: Traffic
   return { yesterday: rate(days.filter(day => day.date === date), metric), previous: rate(days.filter(day => day.date === offset(1)), metric), seven: baseline(7), fourteen: baseline(14), sample: days.find(day => day.date === date), counts: { yesterday: trafficCounts(days.filter(day => day.date === date)), previous: trafficCounts(days.filter(day => day.date === offset(1))), seven: trafficCounts(window(7)), fourteen: trafficCounts(window(14)) } }
 }
 // 仅用于审核新布局：历史人数为确定性演示数据，不是测试站采集值。
-export const trafficDemo = snapshotProducts.slice(0, 6).map((product, index) => ({ ...product,
+export const trafficDemo = snapshotProducts.slice(0, 10).map((product, index) => ({ ...product,
   days: Array.from({ length: 15 }, (_, day) => {
     const exposure = 4200 + index * 1900 + ((day * 127 + index * 73) % 1300)
-    const ctr = day === 14 ? [0.034, 0.073, 0.055, 0.12, 0.046, 0.085][index] : 0.052 + index * 0.009 + (day % 4 - 1.5) * 0.004
+    const ctr = day === 14 ? [0.034, 0.073, 0.055, 0.12, 0.046, 0.085, 0.064, 0.049, 0.092, 0.058][index] : 0.052 + index * 0.009 + (day % 4 - 1.5) * 0.004
     const clicks = Math.round(exposure * ctr)
-    const cvr = day === 14 ? [0.026, 0.055, 0.038, 0.022, 0.074, 0.046][index] : 0.041 + index * 0.005 + (day % 3 - 1) * 0.006
+    const cvr = day === 14 ? [0.026, 0.055, 0.038, 0.022, 0.074, 0.046, 0.112, 0.128, 0.083, 0.061][index] : 0.041 + index * 0.005 + (day % 3 - 1) * 0.006
     return { date: `2026-09-${String(day + 3).padStart(2, '0')}`, exposure, clicks, buyers: Math.round(clicks * cvr) }
   }),
 }))

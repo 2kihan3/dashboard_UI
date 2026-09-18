@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import { topRankingPage } from '../src/data/topRankingPage.ts'
+const rows = Array.from({ length: 120 }, (_, index) => index + 1)
+assert.deepEqual(topRankingPage(rows).rows, rows.slice(0, 10))
+assert.equal(topRankingPage(rows).total, 100)
+assert.equal(topRankingPage(rows).pages, 10)
+assert.deepEqual(topRankingPage(rows, 10).rows, rows.slice(90, 100))
+assert.equal(topRankingPage(rows, 99).current, 10)
+assert.equal(topRankingPage(rows, -1).current, 1)
+assert.equal(topRankingPage(rows, 3, 50).current, 2)
+assert.equal(topRankingPage(rows, 3, 20).offset, 40)
+assert.equal(topRankingPage(rows.slice(0, 6), 8).current, 1)
+assert.equal(topRankingPage([], 8).pages, 1)
+assert.deepEqual(topRankingPage([], 8).rows, [])
+assert.equal(topRankingPage(rows, 1, 0).size, 10)
+console.log('PASS: Top100 cap, first/last pages, 10/20/50 page sizes, clamp, small samples and empty data')
