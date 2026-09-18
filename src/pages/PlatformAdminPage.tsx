@@ -1,10 +1,13 @@
 import { Fragment, type FormEvent, useEffect, useState } from 'react'
 import AdminPage from './AdminPage'
+import SkillManagementPage from './SkillManagementPage'
+import FreightRulesPage from './FreightRulesPage'
 import {
   ChevronRight,
   CircleDollarSign,
   LayoutDashboard,
   MoreVertical,
+  PackageOpen,
   Pencil,
   Plus,
   Power,
@@ -15,7 +18,7 @@ import {
   WandSparkles,
 } from 'lucide-react'
 
-type AreaId = 'overview' | 'permissions' | 'teams' | 'billing' | 'ai' | 'operations'
+type AreaId = 'overview' | 'permissions' | 'teams' | 'billing' | 'freight' | 'ai' | 'operations'
 
 interface LeafPage {
   id: string
@@ -383,6 +386,15 @@ const areas: Area[] = [
       { id: 'pea-quota', title: '豌豆额度管理', description: '为商户团队分配、回收或调整可用额度。' },
       { id: 'billing-packages', title: '计费套餐设置', description: '维护可向商户团队配置的计费套餐。' },
       { id: 'billing-rules', title: '计费规则配置', description: '配置各项平台能力的计费方式、单价和生效状态。' },
+    ],
+  },
+  {
+    id: 'freight',
+    title: '运费规则',
+    description: '按包裹分层鉴定供应商、地区、快递和商品特征，再计算三项费用。',
+    icon: PackageOpen,
+    pages: [
+      { id: 'freight-rules', title: '规则配置', description: '维护维度鉴定、计费方案、特殊联动并进行费用试算。' },
     ],
   },
   {
@@ -1097,7 +1109,7 @@ export default function PlatformAdminPage() {
         <nav className="platform-admin-nav" aria-label="平台管理模块">
           <div className="platform-admin-nav__head">
             <span>平台功能</span>
-            <small>6 个一级模块</small>
+            <small>{areas.length} 个一级模块</small>
           </div>
           {areas.map((area) => {
             const AreaIcon = area.icon
@@ -1129,7 +1141,9 @@ export default function PlatformAdminPage() {
         {route.page.id === 'platform-roles' ? <PlatformRolesPage /> : null}
         {route.page.id === 'billing-rules' ? <BillingRulesPage /> : null}
         {route.page.id === 'billing-packages' ? <BillingPackagesPage /> : null}
-        {route.page.id !== 'function-permissions' && route.page.id !== 'merchant-teams' && route.page.id !== 'users' && route.page.id !== 'platform-roles' && route.page.id !== 'billing-rules' && route.page.id !== 'billing-packages' ? <main className="platform-admin-empty-workspace" id="main-content" tabIndex={-1} aria-labelledby="platform-admin-title"><h1 id="platform-admin-title" className="sr-only">平台管理工作区</h1></main> : null}
+        {route.page.id === 'freight-rules' ? <FreightRulesPage /> : null}
+        {route.page.id === 'business-engine' ? <SkillManagementPage /> : null}
+        {route.page.id !== 'function-permissions' && route.page.id !== 'merchant-teams' && route.page.id !== 'users' && route.page.id !== 'platform-roles' && route.page.id !== 'billing-rules' && route.page.id !== 'billing-packages' && route.page.id !== 'freight-rules' && route.page.id !== 'business-engine' ? <main className="platform-admin-empty-workspace" id="main-content" tabIndex={-1} aria-labelledby="platform-admin-title"><h1 id="platform-admin-title" className="sr-only">平台管理工作区</h1></main> : null}
       </div>
     </section>
   )

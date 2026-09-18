@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import OperationsSnapshotDashboard from './OperationsSnapshotDashboard'
 import { ArrowDownRight, ArrowUpRight, Info } from 'lucide-react'
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, LabelList, Legend, Line, LineChart,
@@ -130,7 +131,7 @@ function AdvertisingChart() {
   return <ChartCard title="广告投入与费率" subtitle="平台广告消耗及其占成交金额比例"><div className="ops-ad-summary"><span>广告消耗合计</span><strong>189.0 万</strong><small>广告费率 11.2%</small></div><ResponsiveContainer width="100%" height={230}><BarChart data={platformStructure} layout="vertical" margin={{ right: 42 }}><XAxis type="number" {...axis} unit="万" /><YAxis type="category" dataKey="platform" {...axis} width={52} /><Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} 万`, '广告消耗']} /><Bar dataKey="adCost" fill="#D65745" radius={[0, 4, 4, 0]}><LabelList dataKey="adRate" position="right" formatter={(value) => `${value}%`} fill="#c7c9ce" fontSize={10} /></Bar></BarChart></ResponsiveContainer></ChartCard>
 }
 
-export default function OperationsDashboard() {
+export function LegacyOperationsDashboard() {
   return <div className="operations-dashboard" data-prd-anchor="operations-dashboard-mock">
     <section className="ops-section"><SectionHead code="A · OVERVIEW" title="经营总览" description="先看规模与效率，再判断变化来自流量、转化还是退款。" /><KpiOverview /><div className="ops-chart-grid"><MainTrend /></div></section>
     <section className="ops-section"><SectionHead code="B · RANKING" title="款号排名" description="聚焦贡献最大的款号，并观察头部集中度。" /><div className="ops-chart-grid"><StyleRanking /><ParetoChart /></div></section>
@@ -138,4 +139,8 @@ export default function OperationsDashboard() {
     <section className="ops-section"><SectionHead code="D · STRUCTURE" title="结构对比" description="从平台、款号和经营状态三个维度检查结构健康度。" /><div className="ops-chart-grid"><PlatformShare /><PlatformArea /><Heatmap /><StatusDonut /><EfficiencyChart /><DistributionChart /></div></section>
     <section className="ops-section"><SectionHead code="E · OPTIONAL" title="扩展经营视角" description="在具备载体和广告消耗字段时，补充内容贡献与投放效率。" /><div className="ops-chart-grid"><CarrierChart /><AdvertisingChart /></div></section>
   </div>
+}
+
+export default function OperationsDashboard() {
+  return <OperationsSnapshotDashboard />
 }

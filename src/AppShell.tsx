@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  FolderOpen,
   LayoutDashboard,
   ListTodo,
   LogOut,
@@ -22,6 +23,7 @@ import './App.css'
 import ChatbotPage from './pages/ChatbotPage'
 import DashboardPage, { type DashboardView } from './pages/DashboardPage'
 import TasksPage, { type DataCenterView } from './pages/TasksPage'
+import FileCenterPage from './pages/FileCenterPage'
 import SkillsPage from './pages/SkillsPage'
 import ProvenancePage from './pages/ProvenancePage'
 import AdminPage from './pages/AdminPage'
@@ -30,7 +32,7 @@ import PlatformAdminPage from './pages/PlatformAdminPage'
 
 const publicAssetBase = import.meta.env.BASE_URL
 
-export type AppSection = 'chatbot' | 'dashboard' | 'tasks' | 'skills' | 'provenance' | 'platform-admin' | 'merchant'
+export type AppSection = 'chatbot' | 'dashboard' | 'tasks' | 'files' | 'skills' | 'provenance' | 'platform-admin' | 'merchant'
 
 type RoleTone = 'aqua' | 'amber' | 'blue' | 'green'
 
@@ -90,6 +92,7 @@ const navItems: NavItem[] = [
   { key: 'chatbot', label: 'chatbot', eyebrow: 'operating_engine', description: '与经营引擎对话，追问任何经营问题', icon: <MessageSquare aria-hidden="true" />, group: 'business' },
   { key: 'dashboard', label: '经营看板', eyebrow: 'business_dashboard', description: '多平台经营指标与趋势', icon: <LayoutDashboard aria-hidden="true" />, group: 'business' },
   { key: 'tasks', label: '数据中心', eyebrow: 'data_center', description: '日报任务记录与日报数据', icon: <ListTodo aria-hidden="true" />, group: 'business' },
+  { key: 'files', label: '文件中心', eyebrow: 'artifact_center', description: '统一管理上传文件与 Agent 产物', icon: <FolderOpen aria-hidden="true" />, group: 'business' },
   { key: 'skills', label: 'skill 市场', eyebrow: 'skill_market', description: '电商经营场景的可复用技能', icon: <Boxes aria-hidden="true" />, group: 'business' },
   { key: 'provenance', label: '数据溯源', eyebrow: 'data_provenance', description: '全链路追溯（筹备中）', icon: <Network aria-hidden="true" />, group: 'business' },
   { key: 'platform-admin', label: '平台管理', eyebrow: 'platform_admin', description: '超管与系统管理员统一入口', icon: <ShieldCheck aria-hidden="true" />, group: 'admin' },
@@ -112,7 +115,7 @@ const dashboardNav: Array<{ key: DashboardView; label: string }> = [
   { key: 'personal', label: '个人看板' },
 ]
 
-const validHashes: AppSection[] = ['chatbot', 'dashboard', 'tasks', 'skills', 'provenance', 'platform-admin', 'merchant']
+const validHashes: AppSection[] = ['chatbot', 'dashboard', 'tasks', 'files', 'skills', 'provenance', 'platform-admin', 'merchant']
 
 function parseHash(): AppSection {
   const raw = window.location.hash.replace(/^#/, '')
@@ -387,6 +390,7 @@ export default function AppShell() {
           {section === 'chatbot' ? <ChatbotPage /> : null}
           {section === 'dashboard' ? <DashboardPage view={dashboardView} /> : null}
           {section === 'tasks' ? <TasksPage view={dataCenterView} /> : null}
+          {section === 'files' ? <FileCenterPage /> : null}
           {section === 'skills' ? <SkillsPage /> : null}
           {section === 'provenance' ? <ProvenancePage /> : null}
           {section === 'platform-admin' ? <PlatformAdminPage /> : null}

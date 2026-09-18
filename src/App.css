@@ -1028,6 +1028,377 @@ td { border-top-color: #303030; }
 .permission-tree-path span { padding: 3px 7px; border: 1px solid #363638; border-radius: 4px; background: #1a1a1b; }
 .permission-tree-path span:first-child { color: #d7d7da; border-color: #4a4a4d; }
 .permission-tree-path svg { width: 13px; height: 13px; color: #68686d; }
+
+/* Supplier freight rules: compact finance workspace inside Admin. */
+.freight-rules-page { align-content: start; min-height: calc(100dvh - 64px); padding: 24px 18px 44px; color: #e7e7ea; }
+.freight-rules-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.freight-rules-head__kicker { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; color: #aa83dd; font-size: 12px; }
+.freight-rules-head__kicker svg { width: 15px; height: 15px; }
+.freight-rules-head h1 { margin: 0; color: #f5f5f7; font-size: 25px; font-weight: 650; letter-spacing: -.025em; }
+.freight-rules-head > div:first-child > p:last-child { max-width: 680px; margin: 8px 0 0; color: #909096; font-size: 13px; line-height: 1.55; }
+.freight-rules-head__actions { display: flex; align-items: center; gap: 9px; }
+.freight-button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.freight-button:active { transform: scale(.98); }
+.freight-button svg { width: 15px; height: 15px; }
+.freight-button--secondary { border: 1px solid #46464a; color: #d1d1d5; background: #232325; }
+.freight-button--secondary:hover { border-color: #5b5b60; color: #f1f1f3; background: #2b2b2e; }
+.freight-button--primary { border: 0; color: #fff; background: #7b36d8; }
+.freight-button--primary:hover { background: #8b47e4; }
+.freight-view-tabs { width: fit-content; display: flex; gap: 3px; margin-top: 22px; padding: 3px; border: 1px solid #363638; border-radius: 8px; background: #1c1c1e; }
+.freight-view-tabs button { min-height: 33px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border: 0; border-radius: 5px; color: #94949a; background: transparent; font-size: 12px; }
+.freight-view-tabs button:hover { color: #e0e0e4; background: #29292c; }
+.freight-view-tabs button.active { color: #f2ebff; background: #4b326d; }
+.freight-view-tabs button svg { width: 14px; height: 14px; }
+.freight-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.freight-summary-grid article { min-height: 104px; display: grid; align-content: center; gap: 4px; padding: 15px 17px; border: 1px solid #343437; border-radius: 10px; background: #171718; }
+.freight-summary-grid span { color: #97979d; font-size: 12px; }
+.freight-summary-grid strong { color: #f3f3f5; font-size: 27px; font-weight: 570; font-variant-numeric: tabular-nums; }
+.freight-summary-grid small { color: #77777d; font-size: 11px; }
+.freight-rule-card { margin-top: 14px; overflow: hidden; border: 1px solid #353538; border-radius: 12px; background: #171718; }
+.freight-filters { min-height: 60px; display: flex; align-items: center; gap: 9px; padding: 11px 13px; border-bottom: 1px solid #343436; }
+.freight-filters > label:not(.freight-search) { display: inline-flex; align-items: center; gap: 7px; color: #898990; font-size: 11px; }
+.freight-filters select { min-width: 108px; min-height: 34px; padding: 0 28px 0 9px; border: 1px solid #404044; border-radius: 6px; outline: 0; color: #d0d0d4; background: #222224; font-size: 12px; }
+.freight-search { min-width: 260px; min-height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 9px; border: 1px solid #404044; border-radius: 6px; background: #222224; }
+.freight-search:focus-within, .freight-filters select:focus { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-search svg { width: 14px; height: 14px; color: #77777e; }
+.freight-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: #e8e8eb; background: transparent; font-size: 12px; }
+.freight-search input::placeholder { color: #74747a; }
+.freight-filter-reset { min-height: 32px; display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border: 0; border-radius: 5px; color: #929298; background: transparent; font-size: 12px; }
+.freight-filter-reset:hover { color: #e5e5e8; background: #2a2a2d; }
+.freight-filter-reset svg { width: 13px; height: 13px; }
+.freight-filter-count { margin-left: auto; color: #75757b; font-size: 11px; white-space: nowrap; }
+.freight-table-scroll { overflow-x: auto; }
+.freight-rule-table { width: 100%; min-width: 1060px; border-collapse: collapse; color: #b1b1b6; font-size: 12px; text-align: left; }
+.freight-rule-table th { height: 42px; padding: 0 13px; border-bottom: 1px solid #343436; color: #8e8e95; background: #1b1b1c; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.freight-rule-table td { height: 68px; padding: 0 13px; border-bottom: 1px solid #2e2e30; vertical-align: middle; white-space: nowrap; }
+.freight-rule-table tbody tr:hover { background: #1c1c1e; }
+.freight-rule-table tbody tr:last-child td { border-bottom: 0; }
+.freight-rule-table th:nth-child(1) { width: 190px; }
+.freight-rule-table th:nth-child(2), .freight-rule-table th:nth-child(3), .freight-rule-table th:nth-child(4) { width: 78px; text-align: right; }
+.freight-rule-table td:nth-child(2), .freight-rule-table td:nth-child(3), .freight-rule-table td:nth-child(4) { text-align: right; }
+.freight-rule-table th:nth-child(5) { width: 102px; }
+.freight-rule-table th:nth-child(6) { width: 204px; }
+.freight-rule-table th:nth-child(7) { width: 82px; }
+.freight-rule-table th:nth-child(8) { width: 174px; }
+.freight-supplier-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.freight-supplier-cell > span { width: 32px; height: 32px; display: grid; flex: 0 0 32px; place-items: center; border: 1px solid #4b4059; border-radius: 8px; color: #d7c1f1; background: #2b2433; font-size: 12px; font-weight: 600; }
+.freight-supplier-cell > div { display: grid; gap: 3px; min-width: 0; }
+.freight-supplier-cell strong { max-width: 150px; overflow: hidden; color: #ececef; font-size: 13px; font-weight: 520; text-overflow: ellipsis; }
+.freight-supplier-cell small { color: #77777e; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+.freight-money { color: #e2e2e5; font-weight: 550; font-variant-numeric: tabular-nums; }
+.freight-money.is-free { display: inline-flex; min-height: 23px; align-items: center; padding: 0 7px; border-radius: 5px; color: #72d9ab; background: #17372b; font-size: 11px; font-weight: 500; }
+.freight-region-link { min-height: 28px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 0; border-radius: 5px; color: #c5a8e8; background: #2b2235; font-size: 11px; }
+.freight-region-link:hover { color: #eadcff; background: #392b48; }
+.freight-region-link svg { width: 12px; height: 12px; }
+.freight-muted { color: #696970; font-size: 11px; }
+.freight-version-cell { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 3px 7px; }
+.freight-version-cell strong { grid-row: 1 / 3; min-width: 32px; color: #ddd0ef; font-size: 12px; }
+.freight-version-cell span { color: #b1b1b7; font-size: 11px; }
+.freight-version-cell small { color: #717178; font-size: 10px; }
+.freight-status { min-height: 23px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; font-size: 10px; }
+.freight-status i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.freight-status--active { color: #5cdaa1; background: #17372b; }
+.freight-status--draft { color: #d9ae70; background: #3b2e1d; }
+.freight-status--disabled { color: #aaaab0; background: #303033; }
+.freight-row-actions { display: flex; align-items: center; gap: 3px; }
+.freight-row-actions button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; color: #929299; background: transparent; }
+.freight-row-actions button:hover { color: #f0f0f3; background: #303033; }
+.freight-row-actions button.danger:hover { color: #ffb0b5; background: #4a292d; }
+.freight-row-actions svg { width: 14px; height: 14px; }
+.freight-empty { min-height: 240px; display: grid; place-items: center; align-content: center; gap: 7px; color: #7e7e84; text-align: center; }
+.freight-empty svg { width: 24px; height: 24px; }
+.freight-empty strong { color: #c8c8cd; font-size: 13px; }
+.freight-empty p { margin: 0; font-size: 11px; }
+.freight-pagination { min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 13px; border-top: 1px solid #343436; color: #7c7c82; font-size: 11px; }
+.freight-pagination > div { display: flex; gap: 3px; }
+.freight-pagination button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 5px; color: #9b9ba1; background: transparent; font-size: 11px; }
+.freight-pagination button.active { border-color: #524165; color: #efe5fb; background: #33283f; }
+.freight-pagination button:disabled { opacity: .32; cursor: default; }
+.freight-pagination svg { width: 13px; height: 13px; }
+.freight-calculator { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(310px, .72fr); gap: 14px; margin-top: 18px; }
+.freight-calculator__form, .freight-calculator__result { border: 1px solid #353538; border-radius: 12px; background: #171718; }
+.freight-calculator__form { padding: 22px; }
+.freight-calculator__form > header { display: flex; align-items: center; gap: 12px; }
+.freight-calculator__form > header > span { width: 42px; height: 42px; display: grid; flex: 0 0 42px; place-items: center; border-radius: 9px; color: #d4c1ef; background: #2d2537; }
+.freight-calculator__form > header svg { width: 20px; height: 20px; }
+.freight-calculator h2 { margin: 0; color: #eeeeF1; font-size: 17px; }
+.freight-calculator header p { margin: 4px 0 0; color: #898990; font-size: 12px; }
+.freight-calculator__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+.freight-calculator__fields label { display: grid; gap: 7px; color: #c7c7cc; font-size: 12px; }
+.freight-calculator__fields input, .freight-calculator__fields select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #444448; border-radius: 7px; outline: 0; color: #e9e9ec; background: #222224; font-size: 12px; color-scheme: dark; }
+.freight-calculator__fields input:focus, .freight-calculator__fields select:focus { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-calculator__hint { display: flex; align-items: flex-start; gap: 8px; margin-top: 20px; padding: 11px 12px; border: 1px solid #3d3944; border-radius: 7px; color: #aaa5b1; background: #211f24; }
+.freight-calculator__hint svg { width: 15px; height: 15px; flex: 0 0 15px; margin-top: 1px; color: #b898df; }
+.freight-calculator__hint p { margin: 0; font-size: 11px; line-height: 1.5; }
+.freight-calculator__result { overflow: hidden; }
+.freight-calculator__result > header { display: grid; gap: 4px; padding: 18px; border-bottom: 1px solid #343436; }
+.freight-calculator__result > header span { color: #eeeeF1; font-size: 14px; font-weight: 550; }
+.freight-calculator__result > header small { color: #85858c; font-size: 11px; }
+.freight-calculator__result dl { display: grid; margin: 0; padding: 4px 18px; }
+.freight-calculator__result dl > div { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #303032; }
+.freight-calculator__result dl > div:last-child { border-bottom: 0; }
+.freight-calculator__result dt { display: grid; gap: 4px; color: #d4d4d8; font-size: 12px; }
+.freight-calculator__result dt small { color: #77777d; font-size: 10px; }
+.freight-calculator__result dd { margin: 0; font-size: 14px; }
+.freight-calculator__result > footer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 4px 12px; padding: 16px 18px; background: #201b25; }
+.freight-calculator__result > footer span { color: #a99eb7; font-size: 11px; }
+.freight-calculator__result > footer strong { grid-row: 1 / 3; grid-column: 2; color: #f4eafa; font-size: 24px; font-weight: 580; }
+.freight-calculator__result > footer small { color: #776f7f; font-size: 10px; }
+.freight-rule-dialog { width: min(850px, calc(100vw - 40px)); }
+.freight-rule-dialog > header, .freight-detail-dialog > header, .freight-confirm-dialog > header, .freight-import-dialog > header { min-height: 60px; align-items: center; padding: 0 24px; border-bottom: 1px solid #39393c; }
+.freight-rule-dialog > header h3, .freight-detail-dialog > header h3, .freight-confirm-dialog > header h3, .freight-import-dialog > header h3 { margin: 3px 0 0; color: #f0f0f3; font-size: 16px; font-weight: 550; }
+.freight-rule-dialog > header .eyebrow, .freight-detail-dialog > header .eyebrow, .freight-confirm-dialog > header .eyebrow, .freight-import-dialog > header .eyebrow { display: block; color: #a683da; font-size: 9px; letter-spacing: .09em; text-transform: uppercase; }
+.freight-rule-dialog .dialog-close, .freight-detail-dialog .dialog-close, .freight-confirm-dialog .dialog-close, .freight-import-dialog .dialog-close { width: 29px; height: 29px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; color: #aaaab0; background: #303033; }
+.freight-rule-dialog .dialog-close:hover, .freight-detail-dialog .dialog-close:hover, .freight-confirm-dialog .dialog-close:hover, .freight-import-dialog .dialog-close:hover { color: #fff; background: #414145; }
+.freight-rule-dialog .dialog-close svg, .freight-detail-dialog .dialog-close svg, .freight-confirm-dialog .dialog-close svg, .freight-import-dialog .dialog-close svg { width: 15px; height: 15px; }
+.freight-rule-dialog__body { display: grid; gap: 20px; padding: 20px 24px 4px; }
+.freight-rule-dialog__body section { display: grid; gap: 12px; }
+.freight-rule-dialog__body h4 { margin: 0; color: #dfdfe3; font-size: 13px; font-weight: 550; }
+.freight-rule-dialog__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 16px; }
+.freight-rule-dialog .dialog-field { display: grid; gap: 6px; min-width: 0; margin: 0; color: #bdbdc3; font-size: 11px; }
+.freight-rule-dialog .dialog-field input, .freight-rule-dialog .dialog-field select { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid #444448; border-radius: 6px; outline: 0; color: #ececef; background: #212123; font-size: 12px; color-scheme: dark; }
+.freight-rule-dialog .dialog-field input:focus, .freight-rule-dialog .dialog-field select:focus { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-section-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.freight-section-title > div { display: grid; gap: 4px; }
+.freight-section-title p { margin: 0; color: #7f7f86; font-size: 10px; }
+.freight-section-title > span { min-height: 23px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 5px; color: #bba1dd; background: #2c2435; font-size: 10px; }
+.freight-fee-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.freight-money-input > div { min-height: 36px; display: flex; align-items: center; overflow: hidden; border: 1px solid #444448; border-radius: 6px; background: #212123; }
+.freight-money-input > div:focus-within { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-money-input i { padding-left: 10px; color: #78787f; font-size: 12px; font-style: normal; }
+.freight-rule-dialog .freight-money-input input { min-height: 34px; padding-left: 5px; border: 0; box-shadow: none; background: transparent; }
+.freight-money-input small { min-height: 13px; color: #6f6f76; font-size: 9px; }
+.freight-region-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.freight-rule-dialog__status { display: grid; grid-template-columns: 15px auto 1fr; align-items: center; gap: 7px; color: #ccccd1; font-size: 11px; cursor: pointer; }
+.freight-rule-dialog__status input { appearance: none; width: 15px; height: 15px; margin: 0; border: 1px solid #707076; border-radius: 3px; background: #1d1d1f; }
+.freight-rule-dialog__status input:checked { border-color: #a9d7ff; background: #a9d7ff; }
+.freight-rule-dialog__status input:checked::after { content: ''; display: block; width: 6px; height: 3px; margin: 3px 0 0 3px; border-bottom: 1.5px solid #18181a; border-left: 1.5px solid #18181a; transform: rotate(-45deg); }
+.freight-rule-dialog__status small { color: #75757b; font-size: 10px; }
+.freight-rule-dialog > footer, .freight-detail-dialog > footer, .freight-confirm-dialog > footer, .freight-import-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding: 15px 24px 19px; border-top: 1px solid #39393c; }
+.freight-rule-dialog > footer button, .freight-detail-dialog > footer button, .freight-confirm-dialog > footer button, .freight-import-dialog > footer button { min-height: 34px; padding: 0 15px; border-radius: 6px; font-size: 12px; }
+.freight-rule-dialog > footer .primary-action, .freight-detail-dialog > footer .primary-action, .freight-import-dialog > footer .primary-action { border: 0; color: #fff; background: #7b36d8; }
+.freight-rule-dialog > footer .secondary-action, .freight-detail-dialog > footer .secondary-action, .freight-confirm-dialog > footer .secondary-action, .freight-import-dialog > footer .secondary-action { border: 1px solid #505054; color: #d3d3d7; background: transparent; }
+.freight-detail-dialog { width: min(620px, calc(100vw - 40px)); }
+.freight-detail-meta { min-height: 44px; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid #343436; color: #898990; font-size: 11px; }
+.freight-detail-fees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 18px 24px; }
+.freight-detail-fees article { display: grid; gap: 7px; padding: 12px; border: 1px solid #38383b; border-radius: 7px; background: #202022; }
+.freight-detail-fees article > span:first-child { color: #8f8f96; font-size: 10px; }
+.freight-detail-fees .freight-money { font-size: 16px; }
+.freight-detail-regions { padding: 2px 24px 4px; }
+.freight-detail-regions > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.freight-detail-regions h4 { margin: 0; color: #d9d9dd; font-size: 12px; }
+.freight-detail-regions header span, .freight-detail-regions > p { color: #7e7e85; font-size: 10px; }
+.freight-detail-regions > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 10px; }
+.freight-detail-regions article { min-height: 35px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 9px; border: 1px solid #353538; border-radius: 6px; color: #aaaab0; background: #1f1f21; font-size: 10px; }
+.freight-confirm-dialog { width: min(430px, calc(100vw - 40px)); }
+.freight-confirm-dialog > p { margin: 0; padding: 22px 24px 6px; color: #aaaab0; font-size: 12px; line-height: 1.65; }
+.freight-confirm-dialog .danger-action { border: 0; color: #fff; background: #b43b45; }
+.freight-confirm-dialog .danger-action:hover { background: #c64853; }
+.freight-import-dialog { width: min(540px, calc(100vw - 40px)); }
+.freight-import-dialog__body { display: grid; gap: 12px; padding: 20px 24px 4px; }
+.freight-import-dialog__body > p { margin: 0; color: #7e7e84; font-size: 10px; line-height: 1.55; }
+.freight-file-picker { position: relative; min-height: 150px; display: grid; place-items: center; align-content: center; gap: 7px; padding: 18px; border: 1px dashed #55505c; border-radius: 9px; color: #a6a0ae; background: #202023; text-align: center; cursor: pointer; }
+.freight-file-picker:hover, .freight-file-picker:focus-within { border-color: #9f77d0; background: #25212a; }
+.freight-file-picker svg { width: 27px; height: 27px; color: #a985d6; }
+.freight-file-picker strong { max-width: 100%; overflow: hidden; color: #dcdce0; font-size: 12px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.freight-file-picker span { color: #85858c; font-size: 10px; }
+.freight-file-picker input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.freight-toast { position: fixed; right: 24px; bottom: 24px; z-index: 120; min-height: 42px; display: flex; align-items: center; padding: 0 16px; border: 1px solid #4a4551; border-radius: 8px; color: #efeff2; background: #29272c; box-shadow: 0 14px 34px rgba(0, 0, 0, .42); font-size: 12px; }
+.freight-rules-page button:focus-visible, .freight-rules-page input:focus-visible, .freight-rules-page select:focus-visible, .freight-rule-dialog button:focus-visible, .freight-detail-dialog button:focus-visible, .freight-confirm-dialog button:focus-visible, .freight-import-dialog button:focus-visible { outline: 2px solid #c7a5eb; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .freight-rules-page *, .freight-rule-dialog *, .freight-detail-dialog *, .freight-confirm-dialog *, .freight-import-dialog * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 1180px) {
+  .freight-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .freight-filters { flex-wrap: wrap; }
+  .freight-filter-count { width: 100%; margin-left: 0; }
+  .freight-calculator { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .freight-rules-page { padding: 18px 12px 34px; }
+  .freight-rules-head { display: grid; }
+  .freight-rules-head__actions { width: 100%; }
+  .freight-button { flex: 1; }
+  .freight-summary-grid { grid-template-columns: 1fr 1fr; }
+  .freight-search { width: 100%; min-width: 0; }
+  .freight-filters > label:not(.freight-search) { flex: 1; }
+  .freight-filters select { width: 100%; }
+  .freight-calculator__fields, .freight-rule-dialog__grid, .freight-fee-grid, .freight-region-grid { grid-template-columns: 1fr; }
+  .freight-detail-fees, .freight-detail-regions > div { grid-template-columns: 1fr 1fr; }
+}
+
+/* Freight decision pipeline: dimensions classify first, calculators price later. */
+.freight-rules-page { display: grid; gap: 16px; }
+.freight-rules-head { margin-bottom: 0; }
+.freight-rules-head__kicker { letter-spacing: .02em; text-transform: none; }
+.freight-rules-head__actions { flex-wrap: wrap; }
+.freight-pipeline { overflow: hidden; border: 1px solid #38353d; border-radius: 12px; background: linear-gradient(135deg, #19171c 0%, #171719 65%, #1b1720 100%); }
+.freight-pipeline > header { min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 18px; border-bottom: 1px solid #343138; }
+.freight-pipeline > header div { display: grid; gap: 3px; }
+.freight-pipeline > header span { color: #a784d5; font-size: 9px; font-weight: 600; letter-spacing: .09em; }
+.freight-pipeline > header h2 { margin: 0; color: #eeeeF1; font-size: 15px; font-weight: 570; }
+.freight-pipeline > header small { color: #838089; font-size: 10px; text-align: right; }
+.freight-pipeline__steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 16px 12px 17px; }
+.freight-pipeline__step { position: relative; min-width: 0; display: flex; align-items: center; gap: 9px; padding: 0 17px 0 8px; }
+.freight-pipeline__step > span { width: 32px; height: 32px; display: grid; flex: 0 0 32px; place-items: center; border: 1px solid #4b4059; border-radius: 8px; color: #d1b7ee; background: #2a2332; }
+.freight-pipeline__step > span svg { width: 15px; height: 15px; }
+.freight-pipeline__step > div { min-width: 0; display: grid; gap: 3px; }
+.freight-pipeline__step strong { overflow: hidden; color: #dedde2; font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.freight-pipeline__step small { overflow: hidden; color: #77747d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.freight-pipeline__step > svg { position: absolute; right: 2px; width: 13px; height: 13px; color: #5c5762; }
+.freight-view-tabs { min-height: 43px; margin: 0; padding: 4px; border: 1px solid #343437; border-radius: 9px; background: #171718; }
+.freight-view-tabs button { min-height: 34px; padding-inline: 12px; border-radius: 6px; }
+.freight-view-tabs button.active { color: #eee8f5; background: #33283e; box-shadow: inset 0 0 0 1px #4c3a5d; }
+.freight-summary-grid { margin: 0; }
+.freight-rule-card { margin: 0; }
+.freight-scheme-table { min-width: 1180px; }
+.freight-scheme-table th:nth-child(n), .freight-scheme-table td:nth-child(n) { width: auto; text-align: left; }
+.freight-scheme-table th:first-child { width: 190px; }
+.freight-scheme-table th:nth-child(5) { width: 210px; }
+.freight-scheme-table th:nth-child(6) { width: 190px; }
+.freight-stage-link { min-height: 29px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid #453a50; border-radius: 6px; color: #c8afe6; background: #28222f; font-size: 11px; }
+.freight-stage-link:hover { border-color: #665277; color: #eee1ff; background: #342a3e; }
+.freight-stage-link svg { width: 12px; height: 12px; }
+.freight-fee-inline { display: flex; align-items: center; gap: 6px; }
+.freight-fee-inline > span { min-height: 27px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border: 1px solid #37373a; border-radius: 5px; color: #77777e; background: #202022; font-size: 10px; }
+.freight-fee-inline .freight-money { font-size: 10px; }
+.freight-fee-inline .freight-money.is-free { min-height: 18px; padding: 0; background: transparent; }
+.freight-config-workspace { display: grid; gap: 14px; }
+.freight-section-head { min-height: 86px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 18px; border: 1px solid #343437; border-radius: 11px; background: #171718; }
+.freight-section-head > div { min-width: 0; }
+.freight-section-head span { color: #9d78ce; font-size: 9px; font-weight: 600; letter-spacing: .09em; }
+.freight-section-head h2 { margin: 4px 0; color: #f0f0f2; font-size: 17px; }
+.freight-section-head p { max-width: 730px; margin: 0; color: #86868d; font-size: 11px; line-height: 1.5; }
+.freight-stage-list { display: grid; gap: 9px; }
+.freight-stage-card { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 12px; min-height: 126px; padding: 14px 15px 14px 0; border: 1px solid #37373a; border-radius: 11px; background: #181819; transition: border-color .18s ease, opacity .18s ease; }
+.freight-stage-card:hover { border-color: #4c4654; }
+.freight-stage-card.is-disabled, .freight-config-card.is-disabled, .freight-exception-card.is-disabled { opacity: .58; }
+.freight-stage-card__order { position: relative; display: flex; justify-content: center; }
+.freight-stage-card__order span { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #544363; border-radius: 50%; color: #d8c2f1; background: #2b2433; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; }
+.freight-stage-card__order i { position: absolute; top: 34px; bottom: -24px; width: 1px; background: #39343e; }
+.freight-stage-card__body { min-width: 0; }
+.freight-stage-card__body > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.freight-stage-card__body > header > div { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.freight-stage-card h3, .freight-config-card h3, .freight-exception-card h3 { margin: 0; color: #e9e9ec; font-size: 13px; font-weight: 560; }
+.freight-stage-card code, .freight-config-card code, .freight-exception-card code { padding: 3px 6px; border-radius: 4px; color: #8f8997; background: #262528; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; }
+.freight-config-state { min-height: 21px; display: inline-flex; flex: 0 0 auto; align-items: center; padding: 0 7px; border-radius: 999px; color: #66d9a3; background: #17372b; font-size: 9px; }
+.freight-config-state.is-disabled { color: #a0a0a6; background: #303033; }
+.freight-stage-card__body > p, .freight-config-card > p, .freight-exception-card p { margin: 8px 0 10px; color: #7f7f86; font-size: 10px; line-height: 1.5; }
+.freight-stage-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.freight-stage-card dl > div, .freight-config-card dl > div { min-width: 0; padding: 8px 10px; border: 1px solid #333336; border-radius: 7px; background: #202022; }
+.freight-stage-card dt, .freight-config-card dt { color: #77777e; font-size: 9px; }
+.freight-stage-card dd, .freight-config-card dd { margin: 5px 0 0; overflow-wrap: anywhere; color: #c5c5ca; font-size: 10px; line-height: 1.4; }
+.freight-stage-card > .freight-row-actions { align-self: start; }
+.freight-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.freight-config-card { min-width: 0; display: grid; padding: 16px; border: 1px solid #37373a; border-radius: 11px; background: #181819; }
+.freight-config-card > header { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.freight-config-card > header > span:first-child { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: #ccb1e9; background: #2a2332; }
+.freight-config-card > header > span:first-child svg { width: 16px; height: 16px; }
+.freight-config-card > header > div { min-width: 0; display: grid; justify-items: start; gap: 4px; }
+.freight-config-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.freight-config-card footer { display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 10px; border-top: 1px solid #303033; }
+.freight-output-tag { min-height: 21px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 5px; color: #d5bbed; background: #30253a; }
+.freight-exception-list { display: grid; gap: 10px; }
+.freight-exception-card { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 15px; border: 1px solid #3c3840; border-radius: 11px; background: #19181a; }
+.freight-exception-card__icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #d0b6eb; background: #2d2436; }
+.freight-exception-card__icon svg { width: 17px; height: 17px; }
+.freight-exception-card > div:nth-child(2) { min-width: 0; }
+.freight-exception-card header { display: flex; align-items: center; gap: 8px; }
+.freight-exception-card header .freight-config-state { margin-left: auto; }
+.freight-exception-flow { display: grid; grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) auto; align-items: stretch; gap: 7px; }
+.freight-exception-flow > span { display: grid; gap: 4px; padding: 9px 10px; border: 1px solid #37343b; border-radius: 7px; color: #c4c2c8; background: #211f23; font-size: 10px; }
+.freight-exception-flow small { color: #9c76cb; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; }
+.freight-exception-flow > svg { align-self: center; width: 14px; height: 14px; color: #716b76; }
+.freight-exception-flow > strong { min-height: 100%; display: flex; align-items: center; padding: 0 10px; border-radius: 6px; color: #d8c2ef; background: #30253a; font-size: 10px; }
+.freight-simulator { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr); gap: 14px; }
+.freight-simulator__form, .freight-trace { overflow: hidden; border: 1px solid #38383b; border-radius: 12px; background: #181819; }
+.freight-simulator__form { padding: 20px; }
+.freight-simulator__form > header { display: flex; align-items: center; gap: 11px; }
+.freight-simulator__form > header > span { width: 40px; height: 40px; display: grid; flex: 0 0 40px; place-items: center; border-radius: 9px; color: #d2b9ec; background: #2d2536; }
+.freight-simulator__form > header svg { width: 18px; height: 18px; }
+.freight-simulator h2 { margin: 0; color: #eeeef1; font-size: 16px; }
+.freight-simulator header p { margin: 4px 0 0; color: #83838a; font-size: 10px; }
+.freight-simulator__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+.freight-simulator__fields label { display: grid; gap: 6px; color: #bdbdc2; font-size: 10px; }
+.freight-simulator__fields input, .freight-simulator__fields select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #444448; border-radius: 7px; outline: 0; color: #e8e8eb; background: #222224; color-scheme: dark; font-size: 11px; }
+.freight-simulator__fields input:focus, .freight-simulator__fields select:focus { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-simulator__fields input[readonly] { color: #85858c; background: #1d1d1f; }
+.freight-simulator__note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 10px 11px; border: 1px solid #3d3944; border-radius: 7px; color: #aaa5b1; background: #211f24; }
+.freight-simulator__note svg { width: 14px; height: 14px; flex: 0 0 14px; color: #b898df; }
+.freight-simulator__note p { margin: 0; font-size: 10px; line-height: 1.5; }
+.freight-trace > header { min-height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; border-bottom: 1px solid #343436; }
+.freight-trace > header div { display: grid; gap: 4px; }
+.freight-trace > header span { color: #e7e7eb; font-size: 13px; font-weight: 550; }
+.freight-trace > header small { color: #7c7c83; font-size: 9px; }
+.freight-trace > header > svg { width: 18px; height: 18px; color: #65d7a1; }
+.freight-trace ol { display: grid; gap: 0; margin: 0; padding: 10px 17px; list-style: none; }
+.freight-trace li { position: relative; min-height: 49px; display: grid; grid-template-columns: 28px 1fr; gap: 8px; align-items: center; }
+.freight-trace li::after { content: ''; position: absolute; top: 37px; bottom: -12px; left: 13px; width: 1px; background: #38343c; }
+.freight-trace li:last-child::after { display: none; }
+.freight-trace li > span { width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid #4a414f; border-radius: 50%; color: #a996b8; background: #26232a; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 8px; }
+.freight-trace li.is-hit > span { border-color: #76579a; color: #eadbfb; background: #3a2949; }
+.freight-trace li div { display: grid; gap: 3px; }
+.freight-trace li strong { color: #d6d6da; font-size: 10px; font-weight: 540; }
+.freight-trace li small { color: #77777e; font-size: 9px; }
+.freight-trace li.is-hit small { color: #c6abdf; }
+.freight-trace dl { display: grid; margin: 0; padding: 4px 17px; border-top: 1px solid #343436; }
+.freight-trace dl > div { min-height: 56px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #303032; }
+.freight-trace dl > div:last-child { border-bottom: 0; }
+.freight-trace dt { display: grid; gap: 3px; color: #d5d5d9; font-size: 11px; }
+.freight-trace dt small { color: #77777d; font-size: 9px; }
+.freight-trace dd { margin: 0; font-size: 13px; }
+.freight-trace > footer { min-height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; background: #211b26; }
+.freight-trace > footer span { display: grid; gap: 3px; color: #b4a8bf; font-size: 10px; }
+.freight-trace > footer small { color: #736b7a; font-size: 8px; }
+.freight-trace > footer strong { color: #f1e7f9; font-size: 22px; font-weight: 590; }
+.freight-rule-dialog__full { grid-column: 1 / -1; }
+.freight-rule-dialog .dialog-field textarea { width: 100%; min-height: 68px; padding: 9px 10px; border: 1px solid #444448; border-radius: 6px; outline: 0; color: #ececef; background: #212123; font: inherit; resize: vertical; }
+.freight-rule-dialog .dialog-field textarea:focus { border-color: #a77cda; box-shadow: 0 0 0 2px rgba(167, 124, 218, .13); }
+.freight-detail-pipeline { padding: 3px 24px 8px; }
+.freight-detail-pipeline h4 { margin: 0 0 9px; color: #d9d9dd; font-size: 11px; }
+.freight-detail-pipeline > div { display: flex; align-items: center; gap: 6px; }
+.freight-detail-pipeline span { padding: 8px 9px; border: 1px solid #37373a; border-radius: 6px; color: #bbb7c0; background: #202022; font-size: 9px; }
+.freight-detail-pipeline svg { width: 12px; height: 12px; color: #6e6872; }
+
+@media (max-width: 1180px) {
+  .freight-pipeline__steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 0; }
+  .freight-pipeline__step:nth-child(3) > svg { display: none; }
+  .freight-config-grid { grid-template-columns: 1fr; }
+  .freight-simulator { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .freight-pipeline > header, .freight-section-head { align-items: flex-start; flex-direction: column; }
+  .freight-pipeline > header small { text-align: left; }
+  .freight-view-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .freight-view-tabs::-webkit-scrollbar { display: none; }
+  .freight-view-tabs button { flex: 0 0 auto; }
+  .freight-stage-card { grid-template-columns: 44px minmax(0, 1fr); }
+  .freight-stage-card > .freight-row-actions { grid-column: 2; justify-content: flex-end; }
+  .freight-exception-card { grid-template-columns: 38px minmax(0, 1fr); }
+  .freight-exception-card > .freight-row-actions { grid-column: 2; justify-content: flex-end; }
+}
+
+@media (max-width: 560px) {
+  .freight-pipeline__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .freight-pipeline__step:nth-child(2n) > svg { display: none; }
+  .freight-pipeline__step:nth-child(3) > svg { display: block; }
+  .freight-stage-card { grid-template-columns: 38px minmax(0, 1fr); padding-right: 10px; }
+  .freight-stage-card__body > header > div { align-items: flex-start; flex-direction: column; }
+  .freight-stage-card dl { grid-template-columns: 1fr; }
+  .freight-config-card dl, .freight-simulator__fields { grid-template-columns: 1fr; }
+  .freight-exception-card { grid-template-columns: 1fr; }
+  .freight-exception-card__icon { display: none; }
+  .freight-exception-card > .freight-row-actions { grid-column: auto; }
+  .freight-exception-card header { align-items: flex-start; flex-wrap: wrap; }
+  .freight-exception-card header .freight-config-state { margin-left: 0; }
+  .freight-exception-flow { grid-template-columns: 1fr; }
+  .freight-exception-flow > svg { justify-self: center; transform: rotate(90deg); }
+  .freight-exception-flow > strong { min-height: 31px; justify-content: center; }
+  .freight-rule-dialog__full { grid-column: auto; }
+  .freight-detail-pipeline > div { align-items: stretch; flex-direction: column; }
+  .freight-detail-pipeline svg { align-self: center; transform: rotate(90deg); }
+}
 .module-management-list, .permission-resource-tree { display: grid; gap: 8px; }
 .module-management-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #353536; border-radius: 12px; background: #181818; transition: border-color .18s ease, background .18s ease; }
 .module-management-row:hover { border-color: #48484b; background: #1a1a1a; }
@@ -1287,4 +1658,464 @@ td { border-top-color: #303030; }
 
 @media (max-width: 460px) {
   .report-stats { grid-template-columns: 1fr; }
+}
+
+/* Skill management keeps platform configuration dense and separates list actions from runtime configuration. */
+body:has(.app-shell--platform-admin) { min-width: 320px; }
+.skill-management-page { gap: 14px; padding: 22px 26px 34px; color: #e7e7ea; }
+.skill-management-page button, .skill-management-page input, .skill-management-page select, .skill-management-page textarea { font: inherit; }
+.skill-management-page button { cursor: pointer; }
+.skill-management-page button:disabled { cursor: not-allowed; opacity: .42; }
+.skill-management-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 78px; }
+.skill-management-header > div { min-width: 0; }
+.skill-management-header > div > span { color: #8f8f97; font-size: 12px; }
+.skill-management-header h1 { margin: 6px 0 4px; color: #f4f4f6; font-size: 22px; font-weight: 620; letter-spacing: 0; }
+.skill-management-header p { margin: 0; color: #94949c; font-size: 13px; line-height: 1.5; }
+.skill-management-header__actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.skill-management-primary { min-height: 38px; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 15px; border: 1px solid #8151c2; border-radius: 7px; color: #fff; background: #7136bc; font-size: 13px; font-weight: 550; transition: border-color .18s ease, background .18s ease; }
+.skill-management-primary:hover { border-color: #9569d2; background: #8046c9; }
+.skill-management-primary svg, .skill-management-secondary svg { width: 16px; height: 16px; }
+.skill-management-secondary { min-height: 38px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid #46474c; border-radius: 7px; color: #d4d4d9; background: #232426; font-size: 13px; transition: border-color .18s ease, background .18s ease; }
+.skill-management-secondary:hover { border-color: #5a5b61; background: #2b2c2f; }
+.skill-management-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #343538; border-radius: 8px; overflow: hidden; background: #171819; }
+.skill-management-summary article { min-width: 0; min-height: 88px; padding: 14px 16px; border-right: 1px solid #343538; }
+.skill-management-summary article:last-child { border-right: 0; }
+.skill-management-summary span, .skill-management-summary small { display: block; color: #8f8f97; font-size: 11px; }
+.skill-management-summary strong { display: block; margin: 6px 0 4px; color: #f3f3f5; font-size: 22px; font-weight: 620; letter-spacing: 0; }
+.skill-management-list { min-width: 0; border: 1px solid #343538; border-radius: 8px; overflow: hidden; background: #151617; }
+.skill-management-toolbar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px 12px 18px; border-bottom: 1px solid #343538; }
+.skill-management-toolbar > div:first-child { display: flex; align-items: baseline; gap: 9px; }
+.skill-management-toolbar h2 { margin: 0; color: #eeeeF1; font-size: 15px; font-weight: 600; }
+.skill-management-toolbar > div:first-child span { color: #82828a; font-size: 11px; }
+.skill-management-filters { display: flex; align-items: center; gap: 8px; }
+.skill-search { min-width: min(300px, 34vw); min-height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #414247; border-radius: 6px; color: #888890; background: #202123; }
+.skill-search:focus-within, .skill-status-filter:focus-within { border-color: #9b74cd; box-shadow: 0 0 0 2px rgba(155, 116, 205, .15); }
+.skill-search svg { width: 15px; height: 15px; flex: 0 0 15px; }
+.skill-search input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; color: #eeeeF1; background: transparent; font-size: 12px; }
+.skill-search input::placeholder { color: #73737b; }
+.skill-status-filter { min-height: 34px; display: flex; align-items: center; border: 1px solid #414247; border-radius: 6px; background: #202123; }
+.skill-status-filter select { min-height: 32px; padding: 0 30px 0 10px; border: 0; outline: 0; color: #d7d7dc; background: transparent; font-size: 12px; cursor: pointer; }
+.skill-management-table-wrap { width: 100%; overflow-x: auto; }
+.skill-management-table { width: 100%; min-width: 1160px; border-collapse: collapse; }
+.skill-management-table th { height: 38px; padding: 0 14px; border-bottom: 1px solid #343538; color: #85858d; background: #1d1e20; font-size: 11px; font-weight: 500; text-align: left; }
+.skill-management-table th:first-child { width: 30%; padding-left: 18px; }
+.skill-management-table td { min-height: 72px; padding: 12px 14px; border-bottom: 1px solid #2f3033; color: #cfcfd4; font-size: 12px; vertical-align: middle; }
+.skill-management-table td:first-child { padding-left: 18px; }
+.skill-management-table tbody tr:last-child td { border-bottom: 0; }
+.skill-management-table tbody tr:hover { background: #1a1b1d; }
+.skill-list-identity { display: flex; align-items: flex-start; gap: 11px; }
+.skill-list-identity > span { width: 34px; height: 34px; display: grid; flex: 0 0 34px; place-items: center; border: 1px solid #454048; border-radius: 7px; color: #cdb7ea; background: #29252e; }
+.skill-list-identity > span svg { width: 17px; height: 17px; }
+.skill-list-identity > div { min-width: 0; display: grid; gap: 4px; }
+.skill-list-identity strong { color: #eeeeF1; font-size: 13px; font-weight: 600; }
+.skill-list-identity small { max-width: 420px; overflow: hidden; color: #898991; font-size: 11px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.skill-id-cell { display: inline-block; max-width: 190px; overflow: hidden; color: #b6a0d2; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.skill-status { display: inline-flex; min-height: 24px; align-items: center; padding: 0 8px; border: 1px solid #46464b; border-radius: 999px; font-size: 11px; white-space: nowrap; }
+.skill-status--enabled { border-color: #365f4c; color: #a9d8c2; background: #1c3028; }
+.skill-status--disabled { color: #a3a3aa; background: #27282a; }
+.skill-status--review { border-color: #6c5836; color: #e1c28a; background: #332a1c; }
+.skill-status--rejected { border-color: #704040; color: #e5aaaa; background: #342020; }
+.skill-version-cell { display: grid; gap: 4px; }
+.skill-version-cell strong { color: #dfdfe3; font-size: 12px; font-weight: 550; }
+.skill-version-cell span { color: #85858d; font-size: 11px; }
+.skill-team-summary { min-height: 30px; display: inline-flex; align-items: center; gap: 7px; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; color: #cfcfd4; background: transparent; font-size: 12px; }
+.skill-team-summary:hover { border-color: #44454a; background: #242527; }
+.skill-team-summary svg { width: 15px; height: 15px; color: #9e88bb; }
+.skill-updated-at { color: #92929a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.skill-row-actions { display: flex; align-items: center; gap: 4px; }
+.skill-row-actions button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; color: #aaaab1; background: transparent; transition: border-color .18s ease, color .18s ease, background .18s ease; }
+.skill-row-actions .skill-row-maintain { width: auto; display: inline-flex; gap: 5px; padding: 0 8px; color: #d5c5e8; }
+.skill-row-actions .skill-row-review { width: auto; display: inline-flex; gap: 5px; padding: 0 8px; border-color: #68532f; color: #e2c58d; background: #302719; }
+.skill-row-actions .skill-row-review:hover:not(:disabled) { border-color: #8a6c3c; color: #f0d7a6; background: #3a2e1c; }
+.skill-row-actions button:hover:not(:disabled) { border-color: #45464a; color: #f2f2f4; background: #292a2c; }
+.skill-row-actions button.danger:hover:not(:disabled) { border-color: #6d3b3b; color: #f0abab; background: #322020; }
+.skill-row-actions svg { width: 15px; height: 15px; }
+.skill-management-empty { min-height: 220px; display: grid; place-items: center; align-content: center; gap: 7px; color: #83838b; }
+.skill-management-empty svg { width: 25px; height: 25px; }
+.skill-management-empty strong { color: #d2d2d7; font-size: 13px; }
+.skill-management-empty span { font-size: 12px; }
+.skill-management-notice { position: fixed; right: 24px; bottom: 24px; z-index: 80; min-height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid #416653; border-radius: 7px; color: #d9eee3; background: #1d3429; box-shadow: 0 12px 30px rgba(0, 0, 0, .28); font-size: 12px; }
+.skill-management-notice svg { width: 15px; height: 15px; }
+
+.skill-config-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: flex-end; background: rgba(5, 6, 7, .58); }
+.skill-config-panel { width: min(580px, 100vw); height: 100dvh; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; border: 0; border-left: 1px solid #3b3c40; color: #e4e4e8; background: #18191b; box-shadow: -18px 0 42px rgba(0, 0, 0, .3); }
+.skill-config-panel > header { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #37383c; }
+.skill-config-panel > header > div { min-width: 0; }
+.skill-config-panel > header span { display: block; color: #9881b6; font-size: 11px; }
+.skill-config-panel > header h2 { margin: 4px 0 3px; color: #f2f2f4; font-size: 17px; font-weight: 600; }
+.skill-config-panel > header code { display: block; color: #85858d; font-size: 10px; }
+.skill-config-panel > header > button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; color: #a5a5ad; background: transparent; }
+.skill-config-panel > header > button:hover { border-color: #48494d; color: #f4f4f6; background: #292a2c; }
+.skill-config-panel > header > button svg { width: 17px; height: 17px; }
+.skill-config-tabs { min-height: 47px; display: flex; align-items: stretch; gap: 2px; padding: 0 14px; border-bottom: 1px solid #37383c; }
+.skill-config-tabs button { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border: 0; color: #909098; background: transparent; font-size: 12px; }
+.skill-config-tabs button:hover { color: #dedee2; }
+.skill-config-tabs button.active { color: #f0f0f3; }
+.skill-config-tabs button.active::after { content: ''; position: absolute; right: 10px; bottom: -1px; left: 10px; height: 2px; background: #a77cdb; }
+.skill-config-tabs button > svg { width: 15px; height: 15px; }
+.skill-config-tabs button > span { min-width: 19px; min-height: 19px; display: grid; place-items: center; border-radius: 999px; color: #bcbcc2; background: #303135; font-size: 10px; }
+.skill-config-body { min-height: 0; padding: 20px; overflow-y: auto; }
+.skill-config-fields, .skill-team-config { display: grid; gap: 17px; margin: 0; padding: 0; border: 0; }
+.skill-config-fields legend, .skill-team-config legend { margin-bottom: 2px; color: #efeff2; font-size: 14px; font-weight: 600; }
+.skill-config-fields > label, .skill-config-grid > label { display: grid; gap: 7px; color: #cdCDD2; font-size: 12px; }
+.skill-config-fields input, .skill-config-fields select, .skill-config-fields textarea { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #45464a; border-radius: 6px; outline: 0; color: #ececf0; background: #232426; font-size: 13px; }
+.skill-config-fields textarea { min-height: 104px; padding-block: 9px; resize: vertical; line-height: 1.5; }
+.skill-config-fields input[readonly] { color: #929299; background: #202123; cursor: default; }
+.skill-config-fields input:focus, .skill-config-fields select:focus, .skill-config-fields textarea:focus { border-color: #a57bd6; box-shadow: 0 0 0 2px rgba(165, 123, 214, .14); }
+.skill-config-fields label > small { color: #7f7f87; font-size: 11px; line-height: 1.45; }
+.skill-config-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skill-config-fields .skill-config-status { grid-template-columns: auto minmax(0, 1fr); align-items: flex-start; gap: 10px; padding: 13px; border: 1px solid #3e3f43; border-radius: 7px; background: #202123; cursor: pointer; }
+.skill-config-status input { appearance: none; width: 34px; min-height: 19px; height: 19px; padding: 0; margin-top: 1px; border: 1px solid #55565b; border-radius: 999px; background: #333438; cursor: pointer; transition: border-color .18s ease, background .18s ease; }
+.skill-config-status input::after { content: ''; display: block; width: 13px; height: 13px; margin: 2px; border-radius: 50%; background: #b3b3b8; transition: transform .18s ease, background .18s ease; }
+.skill-config-status input:checked { border-color: #5b8e75; background: #346449; }
+.skill-config-status input:checked::after { background: #e3f3e9; transform: translateX(15px); }
+.skill-config-status > span { display: grid; gap: 3px; }
+.skill-config-status strong { color: #e2e2e6; font-size: 12px; font-weight: 550; }
+.skill-config-status small { color: #85858d; font-size: 11px; line-height: 1.45; }
+.skill-team-config__summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 14px; border: 1px solid #414247; border-radius: 7px; background: #212225; }
+.skill-team-config__summary > div:first-child { min-width: 0; display: flex; align-items: flex-start; gap: 10px; }
+.skill-team-config__summary svg { width: 18px; height: 18px; flex: 0 0 18px; color: #b9a1d7; }
+.skill-team-config__summary span { display: grid; gap: 3px; }
+.skill-team-config__summary strong { color: #e8e8eb; font-size: 12px; font-weight: 550; }
+.skill-team-config__summary small { color: #85858d; font-size: 11px; line-height: 1.45; }
+.skill-team-config__summary > div:last-child { display: flex; gap: 4px; }
+.skill-team-config__summary button { min-height: 28px; padding: 0 8px; border: 1px solid #46474c; border-radius: 5px; color: #bdbdc3; background: #292a2d; font-size: 11px; }
+.skill-team-config__summary button:hover { color: #f2f2f4; background: #343539; }
+.skill-team-options { display: grid; border: 1px solid #3d3e42; border-radius: 7px; overflow: hidden; }
+.skill-team-options label { min-height: 62px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 11px; padding: 10px 13px; border-bottom: 1px solid #343539; background: #202123; cursor: pointer; }
+.skill-team-options label:last-child { border-bottom: 0; }
+.skill-team-options label:hover { background: #252629; }
+.skill-team-options input { appearance: none; width: 16px; height: 16px; margin: 0; border: 1px solid #64656a; border-radius: 4px; background: #18191b; cursor: pointer; }
+.skill-team-options input:checked { border-color: #b692dd; background: #b692dd; }
+.skill-team-options input:checked::after { content: ''; display: block; width: 7px; height: 4px; margin: 3px 0 0 3px; border-bottom: 1.5px solid #211729; border-left: 1.5px solid #211729; transform: rotate(-45deg); }
+.skill-team-options label > span { display: grid; gap: 4px; }
+.skill-team-options strong { color: #dfdfe3; font-size: 12px; font-weight: 550; }
+.skill-team-options small { color: #85858d; font-size: 11px; }
+.skill-config-panel > footer { min-height: 66px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid #37383c; }
+.skill-config-panel > footer button { min-height: 36px; padding: 0 14px; border: 1px solid #4b4c51; border-radius: 6px; color: #d1d1d6; background: transparent; font-size: 12px; }
+.skill-config-panel > footer button:last-child { border-color: #8052ba; color: #fff; background: #7136bc; }
+.skill-config-panel > footer button:hover { background: #2a2b2e; }
+.skill-config-panel > footer button:last-child:hover { background: #8046c9; }
+
+.skill-upload-dialog { width: min(590px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: hidden; }
+.skill-upload-dialog > header { min-height: 66px; padding: 0 22px; border-bottom: 1px solid #393a3e; }
+.skill-upload-dialog > header span { color: #967bb8; font-size: 11px; }
+.skill-upload-dialog > header h2 { margin: 4px 0 0; color: #f0f0f3; font-size: 16px; }
+.skill-upload-dialog__body { display: grid; gap: 16px; max-height: calc(100dvh - 176px); padding: 20px 22px; overflow-y: auto; }
+.skill-upload-dropzone { min-height: 154px; display: grid; place-items: center; align-content: center; gap: 7px; padding: 18px; border: 1px dashed #59515f; border-radius: 8px; color: #94949c; background: #202123; text-align: center; cursor: pointer; transition: border-color .18s ease, background .18s ease; }
+.skill-upload-dropzone:hover { border-color: #9e77cc; background: #242127; }
+.skill-upload-dropzone input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.skill-upload-dropzone svg { width: 26px; height: 26px; color: #b99bdb; }
+.skill-upload-dropzone strong { color: #e5e5e9; font-size: 13px; font-weight: 550; }
+.skill-upload-dropzone span { color: #83838b; font-size: 11px; }
+.skill-upload-dialog .dialog-field { display: grid; gap: 7px; margin: 0; color: #cfcfd4; font-size: 12px; }
+.skill-upload-dialog .dialog-field small { color: #7f7f87; font-size: 11px; line-height: 1.45; }
+.skill-upload-dialog .dialog-field input, .skill-upload-dialog .dialog-field select, .skill-upload-dialog .dialog-field textarea { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #45464a; border-radius: 6px; outline: 0; color: #ececf0; background: #232426; font-size: 13px; }
+.skill-upload-dialog .dialog-field input[readonly] { color: #aaaab1; background: #202123; cursor: default; }
+.skill-upload-dialog .dialog-field textarea { min-height: 88px; padding-block: 9px; resize: vertical; line-height: 1.5; }
+.skill-upload-dialog .dialog-field input:focus, .skill-upload-dialog .dialog-field select:focus, .skill-upload-dialog .dialog-field textarea:focus { border-color: #a57bd6; box-shadow: 0 0 0 2px rgba(165, 123, 214, .14); }
+.skill-upload-review-note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border: 1px solid #4a4438; border-radius: 7px; background: #29251d; }
+.skill-upload-review-note svg { width: 18px; height: 18px; flex: 0 0 18px; color: #d1b57c; }
+.skill-upload-review-note span { display: grid; gap: 3px; }
+.skill-upload-review-note strong { color: #e6d3a8; font-size: 12px; font-weight: 550; }
+.skill-upload-review-note small { color: #9f947c; font-size: 11px; line-height: 1.45; }
+.skill-create-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skill-create-note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border: 1px solid #3e4d48; border-radius: 7px; background: #202925; }
+.skill-create-note svg { width: 18px; height: 18px; flex: 0 0 18px; color: #9bc9b3; }
+.skill-create-note span { display: grid; gap: 3px; }
+.skill-create-note strong { color: #c8e2d5; font-size: 12px; font-weight: 550; }
+.skill-create-note small { color: #869b91; font-size: 11px; line-height: 1.45; }
+.skill-form-error { padding: 10px 12px; border: 1px solid #6d3b3b; border-radius: 6px; color: #efb0b0; background: #322020; font-size: 11px; line-height: 1.45; }
+.skill-upload-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 18px; border-top: 1px solid #393a3e; }
+.skill-upload-dialog > footer button { min-height: 36px; padding: 0 14px; border-radius: 6px; font-size: 12px; }
+
+.skill-review-dialog { width: min(560px, calc(100vw - 32px)); overflow: hidden; }
+.skill-review-dialog > header { min-height: 66px; padding: 0 22px; border-bottom: 1px solid #393a3e; }
+.skill-review-dialog > header span { color: #c2a16b; font-size: 11px; }
+.skill-review-dialog > header h2 { margin: 4px 0 0; color: #f0f0f3; font-size: 16px; }
+.skill-review-dialog__body { display: grid; gap: 16px; padding: 20px 22px; }
+.skill-review-summary { display: flex; align-items: flex-start; gap: 10px; padding: 13px; border: 1px solid #4f4636; border-radius: 7px; background: #29251d; }
+.skill-review-summary svg { width: 19px; height: 19px; flex: 0 0 19px; color: #d2b477; }
+.skill-review-summary span { display: grid; gap: 4px; }
+.skill-review-summary strong { color: #ead5aa; font-size: 12px; font-weight: 600; }
+.skill-review-summary small { color: #a79a80; font-size: 11px; line-height: 1.5; }
+.skill-review-dialog dl { display: grid; margin: 0; border: 1px solid #3d3e42; border-radius: 7px; overflow: hidden; }
+.skill-review-dialog dl > div { min-height: 44px; display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; padding: 8px 12px; border-bottom: 1px solid #343539; }
+.skill-review-dialog dl > div:last-child { border-bottom: 0; }
+.skill-review-dialog dt { color: #85858d; font-size: 11px; }
+.skill-review-dialog dd { margin: 0; color: #dcdce0; font-size: 12px; }
+.skill-review-dialog dd code { color: #bca3da; font-size: 11px; }
+.skill-review-checklist { display: grid; gap: 9px; padding: 13px; border: 1px solid #3d3e42; border-radius: 7px; background: #202123; }
+.skill-review-checklist strong { color: #dedee2; font-size: 12px; }
+.skill-review-checklist span { display: flex; align-items: center; gap: 8px; color: #9c9ca4; font-size: 11px; }
+.skill-review-checklist svg { width: 14px; height: 14px; color: #8fc2a9; }
+.skill-review-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 18px; border-top: 1px solid #393a3e; }
+.skill-review-dialog > footer button { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border-radius: 6px; font-size: 12px; }
+.skill-review-dialog > footer svg { width: 15px; height: 15px; }
+.skill-review-dialog > footer .skill-review-reject { margin-right: auto; border: 1px solid #6b3b3b; color: #e4a5a5; background: #302020; }
+.skill-review-dialog > footer .skill-review-reject:hover { border-color: #8b4c4c; background: #3a2525; }
+
+.skill-management-page button:focus-visible, .skill-management-page input:focus-visible, .skill-management-page select:focus-visible, .skill-management-page textarea:focus-visible { outline: 2px solid #c4a4e7; outline-offset: 2px; }
+
+@media (max-width: 1120px) {
+  .skill-management-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .skill-management-summary article:nth-child(2) { border-right: 0; }
+  .skill-management-summary article:nth-child(-n + 2) { border-bottom: 1px solid #343538; }
+}
+
+@media (max-width: 820px) {
+  .skill-management-page { padding: 16px 12px 28px; }
+  .skill-management-toolbar { align-items: flex-start; flex-direction: column; }
+  .skill-management-filters { width: 100%; }
+  .skill-search { min-width: 0; flex: 1 1 auto; }
+}
+
+@media (max-width: 560px) {
+  .app-shell--platform-admin .topbar { padding-inline: 16px; }
+  .app-shell--platform-admin .topbar-brand { left: 16px; width: 108px; }
+  .app-shell--platform-admin .figma-product-nav { display: none; }
+  .app-shell--platform-admin .topbar-actions { margin-left: auto; }
+  .app-shell--platform-admin .sidebar-user__info strong { display: none; }
+  .skill-management-header { align-items: flex-start; flex-direction: column; }
+  .skill-management-header__actions { width: 100%; }
+  .skill-management-header__actions > button { flex: 1 1 0; justify-content: center; }
+  .skill-management-summary { grid-template-columns: 1fr; }
+  .skill-management-summary article { border-right: 0; border-bottom: 1px solid #343538; }
+  .skill-management-summary article:last-child { border-bottom: 0; }
+  .skill-management-filters { align-items: stretch; flex-direction: column; }
+  .skill-search, .skill-status-filter, .skill-status-filter select { width: 100%; }
+  .skill-config-grid { grid-template-columns: 1fr; }
+  .skill-create-grid { grid-template-columns: 1fr; }
+  .skill-team-config__summary { align-items: flex-start; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-management-page *, .skill-config-panel * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+/* Artifact file center: workspace navigation, dense file operations and provenance-aware detail. */
+body:has(.app-shell--files) { min-width: 320px; }
+.file-center-page { gap: 14px; color: #e8e8eb; }
+.file-center-page button, .file-center-page input, .file-center-page select { font: inherit; }
+.file-center-page button { cursor: pointer; }
+.file-center-page button:disabled { cursor: not-allowed; opacity: .42; }
+.file-center-header { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.file-center-header > div { min-width: 0; }
+.file-center-header .eyebrow { display: block; color: #82738f; font-size: 10px; text-transform: uppercase; }
+.file-center-header h1 { margin: 5px 0 4px; color: #f2f2f4; font-size: 22px; font-weight: 620; letter-spacing: 0; }
+.file-center-header p { margin: 0; color: #909098; font-size: 12px; line-height: 1.5; }
+.file-center-upload { min-height: 38px; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 15px; border: 1px solid #8151c2; border-radius: 7px; color: #fff; background: #7136bc; }
+.file-center-upload:hover { background: #8046c9; }
+.file-center-upload svg { width: 16px; height: 16px; }
+
+.file-center-metrics { min-height: 72px; display: grid; grid-template-columns: 180px 180px 210px minmax(180px, 1fr); align-items: stretch; border: 1px solid #343538; border-radius: 8px; overflow: hidden; background: #161718; }
+.file-center-metrics > div { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-right: 1px solid #343538; }
+.file-center-metrics > div > svg { width: 18px; height: 18px; flex: 0 0 18px; color: #b99cd7; }
+.file-center-metrics span { min-width: 0; display: grid; gap: 4px; }
+.file-center-metrics strong { color: #efeff2; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.file-center-metrics small { color: #85858d; font-size: 10px; }
+.file-center-metrics .file-storage-progress { display: grid; align-content: center; gap: 7px; border-right: 0; }
+.file-storage-progress i { height: 5px; display: block; overflow: hidden; border-radius: 999px; background: #333438; }
+.file-storage-progress b { width: 1%; height: 100%; display: block; border-radius: inherit; background: #a77bd6; }
+
+.file-center-workspace { min-width: 0; min-height: 570px; display: grid; grid-template-columns: 194px minmax(0, 1fr); border: 1px solid #343538; border-radius: 8px; overflow: hidden; background: #151617; }
+.file-space-nav { min-width: 0; display: grid; grid-template-rows: auto auto 1fr; align-content: start; padding: 14px 10px; border-right: 1px solid #343538; background: #18191a; }
+.file-space-nav__title { min-height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; }
+.file-space-nav__title > span { color: #77777f; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.file-space-nav__title button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 5px; color: #888890; background: transparent; }
+.file-space-nav__title button:hover { color: #e2e2e5; background: #2a2b2d; }
+.file-space-nav__title svg { width: 15px; height: 15px; }
+.file-space-nav nav { display: grid; gap: 3px; }
+.file-space-nav nav button { min-height: 38px; display: grid; grid-template-columns: 17px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 0 9px; border: 1px solid transparent; border-radius: 6px; color: #a3a3aa; background: transparent; text-align: left; transition: color .18s ease, background .18s ease, border-color .18s ease; }
+.file-space-nav nav button:hover { color: #e4e4e7; background: #242527; }
+.file-space-nav nav button.active { border-color: #47404e; color: #f0e8f8; background: #2b2730; }
+.file-space-nav nav svg { width: 16px; height: 16px; }
+.file-space-nav nav span { min-width: 0; font-size: 12px; }
+.file-space-nav nav small { min-width: 21px; height: 19px; display: grid; place-items: center; border-radius: 999px; color: #9999a1; background: #292a2d; font-size: 9px; }
+.file-space-policy { align-self: end; display: flex; align-items: flex-start; gap: 9px; margin: 18px 4px 2px; padding: 11px; border: 1px solid #3c4140; border-radius: 7px; background: #202524; }
+.file-space-policy > svg { width: 16px; height: 16px; flex: 0 0 16px; color: #88baa2; }
+.file-space-policy div { display: grid; gap: 4px; }
+.file-space-policy strong { color: #c9ded4; font-size: 10px; font-weight: 600; }
+.file-space-policy small { color: #7f9289; font-size: 9px; line-height: 1.5; }
+
+.file-browser { min-width: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); align-content: start; }
+.file-browser-toolbar { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px 12px 18px; border-bottom: 1px solid #343538; }
+.file-browser-toolbar > div:first-child { display: flex; align-items: baseline; gap: 9px; }
+.file-browser-toolbar h2 { margin: 0; color: #efeff2; font-size: 14px; font-weight: 600; }
+.file-browser-toolbar > div:first-child > span { color: #7d7d85; font-size: 10px; }
+.file-browser-filters { display: flex; align-items: center; gap: 8px; }
+.file-browser-filters > label { min-height: 34px; display: flex; align-items: center; border: 1px solid #414247; border-radius: 6px; background: #202123; }
+.file-browser-filters select { min-height: 32px; padding: 0 30px 0 10px; border: 0; outline: 0; color: #d3d3d8; background: transparent; font-size: 11px; }
+.file-search { width: min(290px, 28vw); gap: 8px; padding: 0 10px; color: #85858d; }
+.file-search svg { width: 14px; height: 14px; flex: 0 0 14px; }
+.file-search input { min-width: 0; width: 100%; padding: 0; border: 0; outline: 0; color: #ededf0; background: transparent; font-size: 11px; }
+.file-search input::placeholder { color: #72727a; }
+.file-browser-filters > label:focus-within { border-color: #9e75cd; box-shadow: 0 0 0 2px rgba(158, 117, 205, .14); }
+.file-bulk-toolbar { min-height: 44px; display: flex; align-items: center; gap: 7px; padding: 6px 12px 6px 18px; border-bottom: 1px solid #3d3841; color: #d6c8e5; background: #242128; }
+.file-bulk-toolbar > span { margin-right: auto; font-size: 11px; }
+.file-bulk-toolbar button { min-height: 29px; display: inline-flex; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid #48494d; border-radius: 5px; color: #bdbdc3; background: #2a2b2d; font-size: 10px; }
+.file-bulk-toolbar button:hover { color: #f2f2f4; background: #343539; }
+.file-bulk-toolbar button.danger { border-color: #654040; color: #dea7a7; background: #302121; }
+.file-bulk-toolbar svg { width: 13px; height: 13px; }
+
+.file-table-wrap { min-width: 0; overflow-x: auto; }
+.file-table { width: 100%; min-width: 930px; border-collapse: collapse; }
+.file-table th { height: 37px; padding: 0 12px; border-bottom: 1px solid #343538; color: #7f7f87; background: #1c1d1f; font-size: 10px; font-weight: 500; text-align: left; white-space: nowrap; }
+.file-table th:first-child, .file-table td:first-child { width: 40px; padding-left: 16px; padding-right: 6px; }
+.file-table th:nth-child(2) { width: 30%; }
+.file-table td { height: 64px; padding: 9px 12px; border-bottom: 1px solid #2f3033; color: #cacacf; font-size: 11px; vertical-align: middle; }
+.file-table tbody tr:last-child td { border-bottom: 0; }
+.file-table tbody tr:hover, .file-table tbody tr.selected { background: #1b1c1e; }
+.file-table input[type='checkbox'] { appearance: none; width: 15px; height: 15px; margin: 0; border: 1px solid #5a5b60; border-radius: 4px; background: #191a1c; cursor: pointer; }
+.file-table input[type='checkbox']:checked { border-color: #b38bdc; background: #b38bdc; }
+.file-table input[type='checkbox']:checked::after { content: ''; display: block; width: 7px; height: 4px; margin: 3px 0 0 3px; border-bottom: 1.5px solid #24172d; border-left: 1.5px solid #24172d; transform: rotate(-45deg); }
+.file-name-cell { width: 100%; min-width: 0; display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; padding: 0; border: 0; color: inherit; background: transparent; text-align: left; }
+.file-name-cell:hover strong { color: #d9c7ec; }
+.file-name-cell > span:last-child { min-width: 0; display: grid; gap: 5px; }
+.file-name-cell strong { overflow: hidden; color: #e7e7ea; font-size: 11px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+.file-name-cell small { display: flex; align-items: center; gap: 7px; color: #7f7f87; font-size: 9px; }
+.file-kind-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #44454a; border-radius: 6px; color: #b5b5bc; background: #252629; }
+.file-kind-icon svg { width: 17px; height: 17px; }
+.file-kind-icon--xlsx, .file-kind-icon--csv { border-color: #345448; color: #9ac9b3; background: #1d2b26; }
+.file-kind-icon--pdf { border-color: #60403f; color: #dca7a4; background: #302120; }
+.file-kind-icon--png { border-color: #49415a; color: #bda7dc; background: #282331; }
+.file-kind-icon--zip { border-color: #5b4d36; color: #d6b783; background: #2d271d; }
+.file-state { display: inline-flex; align-items: center; padding: 2px 5px; border-radius: 4px; color: #95c9ae; background: #1d3027; font-size: 8px; font-style: normal; }
+.file-state--processing { color: #d2b67f; background: #342c1d; }
+.file-state--failed { color: #dda2a2; background: #342020; }
+.file-source { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.file-source__icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 5px; background: #27282a; }
+.file-source__icon svg { width: 13px; height: 13px; }
+.file-source__icon--agent { color: #bea3dd; background: #292431; }
+.file-source__icon--auto { color: #91bdac; background: #202d28; }
+.file-source__icon--upload { color: #a8a8ae; }
+.file-scope-cell { display: grid; gap: 4px; }
+.file-scope-cell strong { color: #ceced3; font-size: 10px; font-weight: 500; }
+.file-scope-cell small { display: flex; align-items: center; gap: 5px; color: #85858d; font-size: 9px; }
+.file-scope-cell svg { width: 11px; height: 11px; color: #83aa98; }
+.file-task-link { max-width: 130px; display: inline-flex; align-items: center; gap: 6px; padding: 0; overflow: hidden; border: 0; color: #a89abb; background: transparent; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.file-task-link:hover { color: #d1bce7; }
+.file-task-link svg { width: 12px; height: 12px; flex: 0 0 12px; }
+.file-updated { color: #85858d; font-size: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.file-row-actions { display: flex; align-items: center; gap: 2px; }
+.file-row-actions button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 5px; color: #919199; background: transparent; }
+.file-row-actions button:hover { border-color: #45464a; color: #efeff2; background: #292a2c; }
+.file-row-actions svg { width: 14px; height: 14px; }
+.file-empty { min-height: 360px; display: grid; place-items: center; align-content: center; gap: 8px; color: #7f7f87; text-align: center; }
+.file-empty > svg { width: 28px; height: 28px; }
+.file-empty strong { color: #cfcfd4; font-size: 12px; }
+.file-empty span { font-size: 10px; }
+.file-empty button { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 0 10px; border: 1px solid #4b4c51; border-radius: 5px; color: #d2d2d7; background: #292a2d; font-size: 10px; }
+.file-empty button svg { width: 13px; height: 13px; }
+
+.file-preview-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: flex-end; background: rgba(5, 6, 7, .58); }
+.file-preview-panel { width: min(560px, 100vw); height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border-left: 1px solid #3b3c40; color: #e4e4e8; background: #18191b; box-shadow: -18px 0 42px rgba(0, 0, 0, .3); }
+.file-preview-panel > header { min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid #37383c; }
+.file-preview-panel > header > div { min-width: 0; }
+.file-preview-panel > header span { display: block; color: #9b82ba; font-size: 10px; }
+.file-preview-panel > header h2 { margin: 5px 0 0; overflow: hidden; color: #f0f0f3; font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.file-preview-panel > header button { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; color: #a1a1a8; background: transparent; }
+.file-preview-panel > header button:hover { border-color: #47484c; color: #fff; background: #292a2c; }
+.file-preview-panel > header svg { width: 16px; height: 16px; }
+.file-preview-body { min-height: 0; display: grid; align-content: start; gap: 16px; padding: 18px 20px; overflow-y: auto; }
+.file-preview-canvas { min-height: 260px; border: 1px solid #404145; border-radius: 7px; overflow: hidden; background: #222325; }
+.file-preview-sheet > header { min-height: 37px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid #3b3c40; color: #9ec9b5; background: #202724; font-size: 10px; }
+.file-preview-sheet > header svg { width: 14px; height: 14px; }
+.file-preview-sheet table { width: 100%; border-collapse: collapse; }
+.file-preview-sheet th, .file-preview-sheet td { height: 40px; padding: 0 10px; border-right: 1px solid #38393d; border-bottom: 1px solid #38393d; font-size: 9px; text-align: left; }
+.file-preview-sheet th { color: #96969e; background: #27282a; }
+.file-preview-sheet td { color: #c9c9ce; }
+.file-preview-document { display: grid; place-items: center; align-content: center; gap: 8px; padding: 24px; text-align: center; }
+.file-preview-document > svg { width: 36px; height: 36px; color: #b89bd7; }
+.file-preview-document strong { max-width: 90%; color: #dedee2; font-size: 12px; }
+.file-preview-document span { color: #83838b; font-size: 10px; }
+.file-preview-document button { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; margin-top: 7px; padding: 0 10px; border: 1px solid #494a4e; border-radius: 5px; color: #c7c7cc; background: #2b2c2e; font-size: 10px; }
+.file-preview-document button svg { width: 13px; height: 13px; }
+.file-preview-panel dl { display: grid; margin: 0; border: 1px solid #3d3e42; border-radius: 7px; overflow: hidden; }
+.file-preview-panel dl > div { min-height: 42px; display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; padding: 8px 12px; border-bottom: 1px solid #343539; }
+.file-preview-panel dl > div:last-child { border-bottom: 0; }
+.file-preview-panel dt { color: #818189; font-size: 10px; }
+.file-preview-panel dd { margin: 0; color: #d1d1d6; font-size: 10px; }
+.file-preview-panel dd code { color: #b9a0d5; font-size: 9px; }
+.file-lineage { display: grid; gap: 10px; padding: 13px; border: 1px solid #3d3e42; border-radius: 7px; background: #202123; }
+.file-lineage > strong { color: #dcdce0; font-size: 11px; }
+.file-lineage > div { display: flex; align-items: center; gap: 7px; min-width: 0; color: #9898a0; font-size: 9px; }
+.file-lineage > div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-lineage svg { width: 13px; height: 13px; flex: 0 0 13px; }
+.file-preview-panel > footer { min-height: 64px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 11px 20px; border-top: 1px solid #37383c; }
+.file-preview-panel > footer button { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid #48494d; border-radius: 6px; color: #d0d0d5; background: transparent; font-size: 11px; }
+.file-preview-panel > footer button:last-child { border-color: #8151c2; color: #fff; background: #7136bc; }
+.file-preview-panel > footer svg { width: 14px; height: 14px; }
+
+.file-upload-dialog { width: min(590px, calc(100vw - 32px)); overflow: hidden; }
+.file-upload-dialog > header { min-height: 66px; padding: 0 22px; border-bottom: 1px solid #393a3e; }
+.file-upload-dialog > header span { color: #967bb8; font-size: 10px; }
+.file-upload-dialog > header h2 { margin: 4px 0 0; color: #f0f0f3; font-size: 15px; }
+.file-upload-dialog__body { display: grid; gap: 16px; padding: 20px 22px; }
+.file-upload-dialog .dialog-field { display: grid; gap: 7px; margin: 0; color: #cfcfd4; font-size: 11px; }
+.file-upload-dialog .dialog-field select { width: 100%; min-height: 38px; padding: 0 10px; border: 1px solid #45464a; border-radius: 6px; outline: 0; color: #ececf0; background: #232426; font-size: 11px; }
+.file-upload-dialog .dialog-field small { color: #7f7f87; font-size: 10px; }
+.file-upload-dropzone { min-height: 170px; display: grid; place-items: center; align-content: center; gap: 8px; padding: 20px; border: 1px dashed #5b5261; border-radius: 8px; color: #8d8d95; background: #202123; text-align: center; cursor: pointer; }
+.file-upload-dropzone:hover { border-color: #9d75cb; background: #242127; }
+.file-upload-dropzone input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.file-upload-dropzone > svg { width: 27px; height: 27px; color: #b99bd9; }
+.file-upload-dropzone strong { color: #e1e1e5; font-size: 12px; font-weight: 550; }
+.file-upload-dropzone span { max-width: 460px; color: #818189; font-size: 10px; line-height: 1.5; }
+.file-upload-policy { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border: 1px solid #3e4d48; border-radius: 7px; background: #202925; }
+.file-upload-policy > svg { width: 17px; height: 17px; flex: 0 0 17px; color: #96c4ad; }
+.file-upload-policy span { display: grid; gap: 4px; }
+.file-upload-policy strong { color: #c7dfd3; font-size: 11px; font-weight: 550; }
+.file-upload-policy small { color: #84988e; font-size: 10px; line-height: 1.45; }
+.file-upload-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 18px; border-top: 1px solid #393a3e; }
+.file-upload-dialog > footer button { min-height: 36px; padding: 0 14px; border-radius: 6px; font-size: 11px; }
+.file-center-notice { position: fixed; right: 24px; bottom: 24px; z-index: 80; min-height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid #416653; border-radius: 7px; color: #d9eee3; background: #1d3429; box-shadow: 0 12px 30px rgba(0, 0, 0, .28); font-size: 11px; }
+.file-center-notice svg { width: 15px; height: 15px; }
+.file-center-page button:focus-visible, .file-center-page input:focus-visible, .file-center-page select:focus-visible { outline: 2px solid #c4a4e7; outline-offset: 2px; }
+
+@media (max-width: 1050px) {
+  .file-center-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .file-center-metrics .file-storage-progress { grid-column: 1 / -1; border-top: 1px solid #343538; }
+  .file-center-workspace { grid-template-columns: 176px minmax(0, 1fr); }
+}
+
+@media (max-width: 900px) {
+  .app-shell--files .sidebar { display: none; }
+  .app-shell--files .main { margin-left: 0; }
+  .app-shell--files .topbar { padding-inline: 16px; }
+  .app-shell--files .topbar-brand { left: 16px; width: 108px; }
+  .app-shell--files .figma-product-nav { display: none; }
+  .app-shell--files .topbar-actions { margin-left: auto; }
+  .app-shell--files .sidebar-user__info strong { display: none; }
+  .app-shell--files .workspace-tabs { overflow-x: auto; scrollbar-width: none; }
+  .app-shell--files .workspace-tabs::-webkit-scrollbar { display: none; }
+  .app-shell--files .workspace-tabs button { flex: 0 0 auto; }
+  .app-shell--files .main__content { padding: 16px 12px 24px; }
+}
+
+@media (max-width: 760px) {
+  .file-center-header { align-items: flex-start; flex-direction: column; }
+  .file-center-upload { width: 100%; justify-content: center; }
+  .file-center-metrics { grid-template-columns: 1fr; }
+  .file-center-metrics > div { border-right: 0; border-bottom: 1px solid #343538; }
+  .file-center-metrics .file-storage-progress { grid-column: auto; border-top: 0; border-bottom: 0; }
+  .file-center-workspace { display: block; }
+  .file-space-nav { display: block; border-right: 0; border-bottom: 1px solid #343538; }
+  .file-space-nav nav { display: flex; padding-bottom: 5px; overflow-x: auto; }
+  .file-space-nav nav button { min-width: max-content; grid-template-columns: 16px auto auto; }
+  .file-space-policy, .file-space-nav__title { display: none; }
+  .file-browser-toolbar { align-items: flex-start; flex-direction: column; }
+  .file-browser-filters { width: 100%; }
+  .file-search { width: auto; flex: 1 1 auto; }
+}
+
+@media (max-width: 480px) {
+  .file-browser-filters { align-items: stretch; flex-direction: column; }
+  .file-browser-filters > label, .file-browser-filters select { width: 100%; }
+  .file-bulk-toolbar { align-items: flex-start; flex-wrap: wrap; }
+  .file-bulk-toolbar > span { width: 100%; }
+  .file-preview-panel dl > div { grid-template-columns: 90px minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-center-page *, .file-preview-panel * { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
