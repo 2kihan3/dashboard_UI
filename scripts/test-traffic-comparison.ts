@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict'
-import { compareTraffic, rate, trafficDemo, observationDate } from '../src/data/trafficComparison.ts'
+import { classifyTraffic, compareTraffic, rate, trafficCounts, trafficDemo, observationDate } from '../src/data/trafficComparison.ts'
 const days = trafficDemo[0].days
 const result = compareTraffic(days, observationDate, 'ctr')
 assert.equal(result.seven, rate(days.slice(7, 14), 'ctr'))
 assert.equal(result.fourteen, rate(days.slice(0, 14), 'ctr'))
 assert.equal(result.previous, rate([days[13]], 'ctr'))
 assert.equal(result.yesterday, rate([days[14]], 'ctr'))
+assert.deepEqual(result.counts.yesterday, trafficCounts([days[14]]))
+assert.deepEqual(result.counts.previous, trafficCounts([days[13]]))
+assert.equal(result.counts.seven.exposure, days.slice(7, 14).reduce((sum, day) => sum + day.exposure, 0))
+assert.equal(result.counts.fourteen.clicks, days.slice(0, 14).reduce((sum, day) => sum + day.clicks, 0))
+assert.equal(result.counts.fourteen.buyers, days.slice(0, 14).reduce((sum, day) => sum + day.buyers, 0))
+assert.deepEqual(compareTraffic(days.slice(1), observationDate, 'ctr').counts.fourteen, { exposure: null, clicks: null, buyers: null })
+assert.deepEqual(trafficCounts([]), { exposure: null, clicks: null, buyers: null })
+assert.deepEqual(trafficCounts([{ date: observationDate, exposure: 100, clicks: null, buyers: 0 }]), { exposure: 100, clicks: null, buyers: 0 })
+assert.deepEqual(trafficCounts([{ date: observationDate, exposure: 0, clicks: 0, buyers: 0 }]), { exposure: 0, clicks: 0, buyers: 0 })
+console.log('PASS: period counts, complete date windows, missing fields and zero counts')
 assert.equal(compareTraffic(days.slice(1), observationDate, 'ctr').fourteen, null)
 assert.equal(rate([{ date: observationDate, exposure: 0, clicks: 0, buyers: 0 }], 'ctr'), null)
 assert.equal(rate([{ date: observationDate, exposure: null, clicks: 1, buyers: 0 }], 'ctr'), null)
@@ -17,3 +27,10 @@ assert.equal(rate([{ date: observationDate, exposure: 100, clicks: null, buyers:
 assert.equal(rate([{ date: observationDate, exposure: 0, clicks: 0, buyers: 0 }], 'exposureConversion'), null)
 assert.equal(rate([{ date: observationDate, exposure: 100, clicks: 10, buyers: null }], 'exposureConversion'), null)
 console.log('PASS: weighted rates, date windows, observation exclusion, missing data and zero denominators')
+assert.equal(classifyTraffic(6, 10), 'highHigh')
+assert.equal(classifyTraffic(6, 9.99), 'highLow')
+assert.equal(classifyTraffic(5.99, 10), 'lowHigh')
+assert.equal(classifyTraffic(5.99, 9.99), 'lowLow')
+assert.equal(classifyTraffic(null, 10), null)
+assert.equal(classifyTraffic(6, NaN), null)
+console.log('PASS: quadrant thresholds, equality boundaries and invalid values')
