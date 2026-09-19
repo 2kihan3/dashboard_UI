@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { rankTraffic, trafficSortLabels, type TrafficSort } from '../data/trafficRanking'
 import { compareTraffic, type TrafficMetric, type TrafficCounts } from '../data/trafficComparison'
-import { defaultEnd, periodTraffic, periodProducts, shiftDate, type PeriodDays } from '../data/dashboardPeriods'
+import { defaultEnd, periodTraffic, periodProducts, shiftDate } from '../data/dashboardPeriods'
 import TrafficQuadrant from './TrafficQuadrant'
 import ProductId from './ProductId'
 import TopRankingDetails from './TopRankingDetails'
@@ -20,15 +20,15 @@ function Reference({ value, current, counts, metric, label, rateLabel }: { value
   const delta = value === null || current === null ? null : current - value
   return <div className="tc-reference"><span className="tc-mobile-period">{label}</span><div className="tc-delta" data-direction={delta === null ? 'missing' : delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'} aria-label={`${label}，基准日差值${delta === null ? '数据不足' : `${delta.toFixed(2)}个百分点`}`}><b>{delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`}</b><span>{delta === null ? '数据不足' : '个百分点'}</span></div><div className="tc-baseline-rate"><span>{rateLabel}</span><strong>{percent(value)}</strong></div><Counts counts={counts} metric={metric} /></div>
 }
-export default function TrafficComparison({ search, owner, group, top, end = defaultEnd, days = 1 }: { search: string; owner: string; group: string; top: number; end?: string; days?: PeriodDays }) {
+export default function TrafficComparison({ search, owner, group, top, end = defaultEnd }: { search: string; owner: string; group: string; top: number; end?: string }) {
   const [sorts, setSorts] = useState<Record<TrafficMetric, TrafficSort>>({ ctr: 'rate', cvr: 'rate', exposureConversion: 'rate' })
   const dailyProducts = new Map(periodProducts(end, 1).map(row => [row.id, row]))
   const observationDate = end
   const dateLabel = (offset: number) => shiftDate(end, offset).slice(5).replace('-', '.')
   const products = periodTraffic(end).map(row => ({ ...row, payment: dailyProducts.get(row.id)!.payment, estimatedOrders: dailyProducts.get(row.id)!.estimatedOrders })).filter(product => `${product.name} ${product.sku ?? ''} ${product.id}`.toLowerCase().includes(search.trim().toLowerCase()) && (owner === '全部' || (owner === '未归因' ? !product.owner : product.owner === owner)) && (group === '全部' || product.group === group)).slice(0, 100)
   return <section className="tc-section" aria-label="流量效率时间对比">
-    <div className="os-section-label"><h2>流量与承接</h2><span>观察日：{observationDate}（基准日） · 不受统计周期切换影响</span></div>
-    <p className="tc-note">演示数据 · 以上方截至日期为观察日；7天、14天参照均不含基准日，整体比率由周期累计人数计算。</p>
+    <div className="os-section-label"><h2>流量与承接</h2><span>业务日期：{observationDate}（观察基准） · 固定展示前一日、7日与14日参照</span></div>
+    <p className="tc-note">演示数据 · 7天、14天参照均不含观察日，整体比率由周期累计人数计算。</p>
     <div className="os-grid tc-grid">{(['ctr', 'cvr', 'exposureConversion'] as TrafficMetric[]).map(metric => <article className="os-panel tc-panel" data-slot="card" key={metric}>
       <header data-slot="card-header" className="tc-card-heading"><div><h3 data-slot="card-title">{metricLabels[metric].title}</h3><p data-slot="card-description">{metricLabels[metric].formula} · 差值＝基准日比率－参照比率，单位为百分点</p></div><label>排序<select aria-label={`${metricLabels[metric].title}排序`} value={sorts[metric]} onChange={event => setSorts(current => ({ ...current, [metric]: event.target.value as TrafficSort }))}>{(Object.keys(trafficSortLabels) as TrafficSort[]).map(key => <option key={key} value={key}>{trafficSortLabels[key]} · 降序</option>)}</select></label></header>
       <div data-slot="card-content" className="tc-content"><TopRankingDetails key={`${metric}-${sorts[metric]}`} rows={rankTraffic(products, observationDate, metric, sorts[metric])} preview={top} title={metricLabels[metric].title} note={`${observationDate} · 按${trafficSortLabels[sorts[metric]]}降序 · 演示数据`}>{(items, offset) => <><div className="tc-columns"><span className="tc-product-column">商品<small>{trafficSortLabels[sorts[metric]]}降序</small></span><span>基准日<small>{dateLabel(0)} · 单日</small></span><span>对比前一日<small>{dateLabel(-1)} · 单日</small></span><span>对比7天<small>{dateLabel(-7)}—{dateLabel(-1)} · 累计</small></span><span>对比14天<small>{dateLabel(-14)}—{dateLabel(-1)} · 累计</small></span></div>
@@ -39,6 +39,6 @@ export default function TrafficComparison({ search, owner, group, top, end = def
         {!items.length && <p className="os-no-rows">没有匹配商品，请调整顶部筛选。</p>}
         </>}</TopRankingDetails>
       </div><footer data-slot="card-footer">{products.length} 个演示商品 · 基准日/前一日为单日人数，7/14天为按日累计人数，非周期去重 · 缺失显示“—”，不补零</footer>
-    </article>)}<TrafficQuadrant key={`${end}-${days}`} products={products} end={end} days={days} /></div>
+    </article>)}<TrafficQuadrant key={end} products={products} end={end} /></div>
   </section>
 }

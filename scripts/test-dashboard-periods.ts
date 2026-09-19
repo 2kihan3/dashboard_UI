@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { periodScope, periodProducts, periodMovements, periodTraffic, sortProducts, shiftDate } from '../src/data/dashboardPeriods.ts'
+import { amountTrend, periodScope, periodProducts, periodMovements, periodTraffic, sortProducts, shiftDate } from '../src/data/dashboardPeriods.ts'
 import { rate } from '../src/data/trafficComparison.ts'
 const end = '2026-09-17'
 assert.deepEqual(periodScope(end, 7), { start: '2026-09-11', end, previousStart: '2026-09-04', previousEnd: '2026-09-10', label: '2026-09-11—2026-09-17', previousLabel: '2026-09-04—2026-09-10' })
@@ -21,9 +21,14 @@ for (const days of [1, 7, 14] as const) {
     assert.ok(ranked.every((row,index)=>index === 0 || (ranked[index-1][metric] ?? -1) >= (row[metric] ?? -1)))
   }
   const movements = periodMovements(end, days)
-  assert.ok(movements.new.length > 0)
+  const trend = amountTrend(end, days)
+  assert.equal(trend.length, days)
+  assert.equal(trend[0].date, periodScope(end, days).start)
+  assert.equal(trend.at(-1)?.date, end)
+  assert.ok(trend.every(row => row.gmv > 0 && row.refund >= 0 && row.spend >= 0 && row.missingSpend > 0))
+  assert.ok(movements.up.length > 0)
   assert.ok(movements.down.length > 0)
-  assert.ok(movements.new.every(row=>row.previousPayment === 0 && row.payment > 0))
+  assert.ok(movements.up.every(row=>row.previousPayment > 0 && row.payment > row.previousPayment))
   assert.ok(movements.down.every(row=>row.payment < row.previousPayment))
   const traffic = periodTraffic(end)[0].days.filter(day=>day.date >= periodScope(end,days).start)
   assert.equal(traffic.length, days)

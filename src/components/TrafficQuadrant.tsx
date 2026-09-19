@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Cell, CartesianGrid, LabelList, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts'
 import {  quadrantLabels, trafficThresholds, type trafficDemo } from '../data/trafficComparison'
-import { defaultEnd, periodScope, type PeriodDays } from '../data/dashboardPeriods'
+import { defaultEnd, periodScope } from '../data/dashboardPeriods'
 import { filterQuadrantPoints, quadrantSortLabels, quadrantPoints, quadrantScale, type QuadrantFilter, type QuadrantSort, type QuadrantPoint } from '../data/quadrantPoints'
 import ProductId from './ProductId'
 import TopRankingDetails from './TopRankingDetails'
+import TimeWindowSwitch from './TimeWindowSwitch'
+import { analysisWindows } from './timeWindowOptions'
 
 function QuadrantChart({ points, scale, height = 420, activeId, onHover }: { points: QuadrantPoint[]; scale: ReturnType<typeof quadrantScale>; height?: number; activeId: string | null; onHover: (id: string | null) => void }) {
   if (!points.length) return <p className="os-no-rows">没有可分类的商品。</p>
@@ -45,7 +47,8 @@ function QuadrantTable({ points, activeId, onHover }: { points: QuadrantPoint[];
   </tr>)}</tbody></table></div>
 }
 
-export default function TrafficQuadrant({ products, end = defaultEnd, days = 1 }: { products: typeof trafficDemo; end?: string; days?: PeriodDays }) {
+export default function TrafficQuadrant({ products, end = defaultEnd }: { products: typeof trafficDemo; end?: string }) {
+  const [days, setDays] = useState<1 | 7 | 14>(1)
   const [filter, setFilter] = useState<QuadrantFilter>('all')
   const [sort, setSort] = useState<QuadrantSort>('exposure')
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -65,7 +68,7 @@ export default function TrafficQuadrant({ products, end = defaultEnd, days = 1 }
   const table = (items: QuadrantPoint[]) => <QuadrantTable points={items} activeId={activeId} onHover={setActiveId} />
   const chart = (items: QuadrantPoint[], height = 420) => <QuadrantChart points={items} scale={scale} height={height} activeId={items.some(point => point.id === activeId) ? activeId : null} onHover={setActiveId} />
   return <article className="os-panel tq-panel" data-slot="card">
-    <header data-slot="card-header"><h3 data-slot="card-title">点击率 × 成交率四象限</h3><p data-slot="card-description">{scope.label} · 周期累计比率 · CTR 阈值 6% · 点击成交率阈值 10% · 等于阈值归入高值</p></header>
+    <header data-slot="card-header" className="tq-card-header"><div><h3 data-slot="card-title">点击率 × 成交率四象限</h3><p data-slot="card-description">{scope.label} · 周期累计比率 · CTR 阈值 6% · 点击成交率阈值 10% · 等于阈值归入高值</p></div><TimeWindowSwitch value={days} options={analysisWindows} label="四象限时间范围" onChange={setDays} /></header>
     <div className="os-panel-body" data-slot="card-content">{controls('看板')}<div className="tq-layout">
       <div className="tq-visual">{chart(points)}<p className="tq-chart-hint">悬停坐标点或商品行，可高亮对应商品</p></div>
       <div className="tq-details"><div className="tq-details-heading"><h4>商品明细</h4><span>{quadrantSortLabels[sort]}降序 · 默认10条</span></div>

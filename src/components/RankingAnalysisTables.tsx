@@ -2,20 +2,22 @@ import { useState } from 'react'
 import { sortProducts, type PeriodProduct, type ProductSort, type periodScope } from '../data/dashboardPeriods'
 import ProductId from './ProductId'
 import TopRankingDetails from './TopRankingDetails'
+import TimeWindowSwitch from './TimeWindowSwitch'
+import { analysisWindows } from './timeWindowOptions'
 
 const money = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const percentage = (value: number | null) => value === null ? '—' : `${(value * 100).toFixed(1)}%`
 function Change({ value, unit = '%' }: { value: number | null; unit?: string }) {
   return <small className="ra-change" data-direction={value === null ? 'missing' : value > 0 ? 'up' : value < 0 ? 'down' : 'flat'}>{value === null ? '对比数据不足' : `${value > 0 ? '+' : ''}${value.toFixed(1)}${unit}`}</small>
 }
-export default function RankingAnalysisTables({ rows, metric, scope, top }: { rows: PeriodProduct[]; metric: ProductSort; scope: ReturnType<typeof periodScope>; top: number }) {
+export default function RankingAnalysisTables({ rows, metric, scope, top, days, onDaysChange }: { rows: PeriodProduct[]; metric: ProductSort; scope: ReturnType<typeof periodScope>; top: number; days: 1 | 7 | 14; onDaysChange: (days: 1 | 7 | 14) => void }) {
   const [sort, setSort] = useState<ProductSort>(metric)
   const products = sortProducts(rows, sort)
   const totalSpend = rows.reduce((sum,row)=>sum+(row.spend ?? 0),0)
   const spendAnalysisDemo = [...rows].sort((a,b)=>(b.spend ?? -1)-(a.spend ?? -1)).map(row=>({...row, share: row.spend === null || totalSpend <= 0 ? null : row.spend / totalSpend * 100}))
   return <section className="sr-section" aria-label="商品销售与投放分析">
-    <div className="os-section-label"><h2>商品销售与投放分析</h2><span>销售看贡献 · 投放看效率</span></div>
-    <p className="ra-demo-note">{scope.label} · 对比 {scope.previousLabel} · 全部字段为日级模拟聚合。ROI＝周期归因成交总额÷周期消耗，不平均单笔ROI。</p>
+    <div className="os-section-label"><div><h2>商品销售与投放分析</h2><span className="os-section-range">{scope.label} 对比 {scope.previousLabel}</span></div><TimeWindowSwitch value={days} options={analysisWindows} label="商品排行时间范围" onChange={onDaysChange} /></div>
+    <p className="ra-demo-note">全部字段为日级模拟聚合。ROI＝周期归因成交总额÷周期消耗，不平均单笔ROI。</p>
     <article className="os-panel sr-panel ra-panel" data-slot="card">
       <header data-slot="card-header"><div className="ra-heading"><div><h3 data-slot="card-title">商品排行 <span>销售贡献与成交结构</span></h3><p data-slot="card-description">看销售规模，以及其中多少成交依赖推广。</p></div><label>排序<select aria-label="销售商品排行排序" value={sort} onChange={event => setSort(event.target.value as typeof sort)}><option value="payment">支付金额</option><option value="estimatedOrders">订单数</option></select></label></div></header>
       <div className="os-panel-body" data-slot="card-content"><TopRankingDetails key={sort} preview={top} rows={products} title="商品排行" note={`${scope.label} · 按${sort === 'payment' ? '支付金额' : sort === 'conversion' ? '点击成交率' : '订单数'}降序 · 演示数据`}>{(items, offset) => <div className="os-table-scroll" role="region" tabIndex={0} aria-label="商品销售贡献表，支持横向滚动"><table><thead><tr>{['排名', '商品 / 归属', '订单数¹', '支付金额', '销售占比', '推广订单占比¹', '推广金额占比¹', '退款金额'].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{items.map((row, index) => <tr key={row.id}>

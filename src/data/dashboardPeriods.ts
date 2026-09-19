@@ -1,7 +1,7 @@
 import { snapshotProducts } from './operationsSnapshot.ts'
 import { ratio } from './rankingAnalysisDemo.ts'
 
-export type PeriodDays = 1 | 7 | 14
+export type PeriodDays = 1 | 7 | 14 | 30
 export type ProductSort = 'payment' | 'estimatedOrders' | 'conversion'
 export const defaultEnd = '2026-09-17'
 export const shiftDate = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
@@ -36,6 +36,19 @@ export function periodProducts(end: string, days: PeriodDays) {
   return rows.map(row => ({ ...row, share: total > 0 ? row.payment / total * 100 : 0 }))
 }
 export type PeriodProduct = ReturnType<typeof periodProducts>[number]
+export function amountTrend(end: string, days: PeriodDays) {
+  return Array.from({ length: days }, (_, index) => shiftDate(end, index - days + 1)).map(date => {
+    const rows = periodProducts(date, 1)
+    return {
+      date,
+      label: date.slice(5).replace('-', '/'),
+      gmv: rows.reduce((sum, row) => sum + row.payment, 0),
+      refund: rows.reduce((sum, row) => sum + row.refund, 0),
+      spend: rows.reduce((sum, row) => sum + (row.spend ?? 0), 0),
+      missingSpend: rows.filter(row => row.spend === null).length,
+    }
+  })
+}
 export function sortProducts<T extends { id: string; payment: number; estimatedOrders: number; conversion: number | null }>(rows: T[], sort: ProductSort) {
   return [...rows].sort((a, b) => (b[sort] ?? -1) - (a[sort] ?? -1) || a.id.localeCompare(b.id)).slice(0, 100)
 }
@@ -47,9 +60,7 @@ export function periodMovements(end: string, days: PeriodDays) {
     const source = snapshotProducts[index % snapshotProducts.length]
     const current = aggregate(index, end, days)
     const previous = aggregate(index, shiftDate(end, -days), days)
-    // 模拟零基数用于检验新增分支；不把“新增成交”解释成新上架。
-    const newlySelling = index % 9 === 0
-    return { ...source, ...current, id: `demo-${index + 1}`, name: `${source.name} · 款 ${index + 1}`, sku: `DEMO-${index + 1}`, conversion: ratio(current.buyers, current.clicks), previousPayment: newlySelling ? 0 : previous.payment, previousOrders: newlySelling ? 0 : previous.estimatedOrders }
+    return { ...source, ...current, id: `demo-${index + 1}`, name: `${source.name} · 款 ${index + 1}`, sku: `DEMO-${index + 1}`, conversion: ratio(current.buyers, current.clicks), previousPayment: previous.payment, previousOrders: previous.estimatedOrders }
   })
-  return { new: rows.filter(row => row.previousPayment === 0 && row.payment > 0), down: rows.filter(row => row.payment < row.previousPayment) }
+  return { up: rows.filter(row => row.previousPayment > 0 && row.payment > row.previousPayment), down: rows.filter(row => row.previousPayment > 0 && row.payment < row.previousPayment) }
 }
