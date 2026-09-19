@@ -1,26 +1,22 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { AlertTriangle, RotateCcw, Search } from 'lucide-react'
 import ProductMovement from './ProductMovement'
-import Ranking from './CompactRanking'
 import TrafficComparison from './TrafficComparison'
 import AmountTrendChart from './AmountTrendChart'
 import SourceRankingTables from './SourceRankingTables'
 import RankingAnalysisTables from './RankingAnalysisTables'
-import TopRankingDetails from './TopRankingDetails'
+import AttributionRankingTable from './AttributionRankingTable'
 import TimeWindowSwitch from './TimeWindowSwitch'
 import { analysisWindows } from './timeWindowOptions'
 import { snapshotProducts } from '../data/operationsSnapshot'
 import { defaultEnd, periodProducts, periodScope, type ProductSort } from '../data/dashboardPeriods'
+import type { AttributionGrain } from '../data/attributionRanking'
 import './OperationsSnapshotDashboard.css'
 
 const amount = (value: number | null) => value === null ? '未采集' : value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 const compact = (value: number) => Math.abs(value) >= 10000 ? `${(value / 10000).toFixed(2)}万` : amount(value)
 type Metric = ProductSort
 
-// 沿用项目的 CSS-native Card，使用 shadcn 的 Header / Content / Footer 分层。
-function Panel({ title, description, children, footer }: { title: string; description: string; children: ReactNode; footer?: ReactNode }) {
-  return <article className="os-panel" data-slot="card"><header data-slot="card-header"><h3 data-slot="card-title">{title}</h3><p data-slot="card-description">{description}</p></header><div className="os-panel-body" data-slot="card-content">{children}</div>{footer && <footer data-slot="card-footer">{footer}</footer>}</article>
-}
 export default function OperationsSnapshotDashboard() {
   const [end, setEnd] = useState(defaultEnd)
   const [overviewDays, setOverviewDays] = useState<1 | 7 | 14>(1)
@@ -39,16 +35,13 @@ export default function OperationsSnapshotDashboard() {
   const [group, setGroup] = useState('全部')
   const [metric, setMetric] = useState<Metric>('payment')
   const [top, setTop] = useState(10)
-  const [teamGrain, setTeamGrain] = useState<'group' | 'owner'>('group')
-  const reset = () => { setSearch(''); setOwner('全部'); setGroup('全部'); setMetric('payment'); setTop(10); setEnd(defaultEnd); setOverviewDays(1); setRankingDays(1); setAttributionDays(1); setResetVersion(value => value + 1) }
+  const [attributionGrain, setAttributionGrain] = useState<AttributionGrain>('owner')
+  const reset = () => { setSearch(''); setOwner('全部'); setGroup('全部'); setMetric('payment'); setTop(10); setEnd(defaultEnd); setOverviewDays(1); setRankingDays(1); setAttributionDays(1); setAttributionGrain('owner'); setResetVersion(value => value + 1) }
   const owners = [...new Set(snapshotProducts.flatMap((row) => row.owner ? [row.owner] : []))]
   const groups = [...new Set(snapshotProducts.flatMap((row) => row.group ? [row.group] : []))]
   const products = filterProducts(rankingProducts)
-  const attribution = new Map<string, number>()
-  attributionProducts.forEach(row => { const key = teamGrain === 'group' ? row.group : row.owner; if (key) attribution.set(key, (attribution.get(key) ?? 0) + row.payment) })
-  const teamRows = [...attribution].map(([name, value]) => ({ name, value })).sort((a,b) => b.value-a.value)
   const sum = (field: 'payment' | 'estimatedOrders' | 'refund' | 'exposure' | 'clicks' | 'buyers') => overviewProducts.reduce((total,row)=>total+row[field],0)
-  const snapshot = { gmv: sum('payment'), orders: sum('estimatedOrders'), refund: sum('refund'), spend: overviewProducts.reduce((total,row)=>total+(row.spend ?? 0),0), clickPeople: sum('clicks'), exposurePeople: sum('exposure'), cvrDisplay: `${(sum('buyers') / sum('clicks') * 100).toFixed(2)}%`, unattributedDisplay: amount(attributionProducts.filter(row=>!row.owner).reduce((total,row)=>total+row.payment,0)) }
+  const snapshot = { gmv: sum('payment'), orders: sum('estimatedOrders'), refund: sum('refund'), spend: overviewProducts.reduce((total,row)=>total+(row.spend ?? 0),0), clickPeople: sum('clicks'), exposurePeople: sum('exposure'), cvrDisplay: `${(sum('buyers') / sum('clicks') * 100).toFixed(2)}%` }
   const previousTotal = (field: 'payment' | 'estimatedOrders' | 'refund' | 'exposure' | 'clicks' | 'buyers') => overviewProducts.reduce((total,row)=>total+row.previous[field],0)
   const growth = (current:number, previous:number) => previous > 0 ? (current / previous - 1) * 100 : null
   const kpis = [
@@ -67,7 +60,7 @@ export default function OperationsSnapshotDashboard() {
       <TrafficComparison key={`${end}-${resetVersion}`} search={search} owner={owner} group={group} top={top} end={end} />
       <RankingAnalysisTables key={`rankings-${end}-${metric}`} rows={products} metric={metric} scope={rankingScope} top={top} days={rankingDays} onDaysChange={setRankingDays} />
       <details className="ra-source"><summary>查看原表对照 · 截图字段与原始顺序</summary><SourceRankingTables /></details>
-      <><div className="os-section-label"><div><h2>经营归因</h2><span className="os-section-range">{attributionScope.label}</span></div><div className="os-section-actions"><TimeWindowSwitch value={attributionDays} options={analysisWindows} label="经营归因时间范围" onChange={setAttributionDays} /><div className="os-switch" aria-label="归因维度"><button type="button" aria-pressed={teamGrain === 'group'} onClick={() => setTeamGrain('group')}>小组</button><button type="button" aria-pressed={teamGrain === 'owner'} onClick={() => setTeamGrain('owner')}>个人</button></div></div></div><div className="os-grid"><Panel title={teamGrain === 'group' ? '小组支付金额排名' : '个人支付金额排名'} description={teamGrain === 'group' ? '一人多组时各组分别计入，仅比较排名，不计算占比。' : '按商品负责人归因，非人员实际广告产出。当前为周期演示数据。'}><Ranking key={`${end}-${attributionDays}`} title={teamGrain === 'group' ? '小组支付金额排名' : '个人支付金额排名'} rows={teamRows} /></Panel><Panel title="归因覆盖说明" description="未归因不代表没有成交。归属缺失与采集缺失应分别处理。"><div className="os-attribution"><span>个人未归因支付金额</span><strong>{snapshot.unattributedDisplay}<small> 元</small></strong><p>当前周期演示商品的未归因金额，不代表全店铺实际数据。</p><div><span>一人多组</span><b>可能重复计入</b></div><div><span>未映射商品</span><b>不计入人员排行</b></div><div><span>达人账号归因</span><b>本次未提取</b></div></div></Panel></div><Panel title="归因明细" description="保留精确金额，不把 Top 10 合计当作全店铺总额。"><TopRankingDetails key={`${end}-${attributionDays}`} rows={teamRows} title="归因明细" note={`${attributionScope.label} · 演示数据 · 按支付金额降序`}>{(items, offset) => <div className="os-table-scroll"><table><thead><tr><th>排名</th><th>{teamGrain === 'group' ? '小组' : '人员'}</th><th>支付金额 / 元</th></tr></thead><tbody>{items.map((row, index) => <tr key={row.name}><td>{offset + index + 1}</td><td>{row.name}</td><td>{amount(row.value)}</td></tr>)}</tbody></table></div>}</TopRankingDetails></Panel></>
+      <><div className="os-section-label"><div><h2>经营归因</h2><span className="os-section-range">{attributionScope.label}</span></div><TimeWindowSwitch value={attributionDays} options={analysisWindows} label="经营归因时间范围" onChange={setAttributionDays} /></div><AttributionRankingTable rows={attributionProducts} grain={attributionGrain} onGrainChange={setAttributionGrain} scopeLabel={attributionScope.label} /></>
       <p className="os-footnote">时间切换使用独立日级演示数据 · 未连接后端 / 未写入数据库 · 原表对照和8月采集提示保持快照不变。</p>
   </div>
 }
